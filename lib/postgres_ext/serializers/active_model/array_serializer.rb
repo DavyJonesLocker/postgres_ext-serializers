@@ -21,26 +21,38 @@ module PostgresExt::Serializers::ActiveModel
     private
 
     def _postgres_serializable_array
-      visitor = object.klass.connection.visitor
-      attributes = object.klass.active_model_serializer._attributes
-      object_query = object.dup
-      object_query_arel = object_query.arel_table
-      attributes.each do |name, key|
-        if name.to_s == key.to_s
-          object_query = object_query.select(object_query_arel[name])
+      object_cte_name, object_as_json_arel = _relation_to_json_array_arel _object_query
+
+      jsons_select_manager = _results_table_arel
+      combined_jsons_as = _postgres_cte_as 'jsons', _visitor.accept(object_as_json_arel)
+      objects_as = _postgres_cte_as object_cte_name, "(#{_object_query.to_sql})"
+      jsons_select_manager.with([objects_as, combined_jsons_as])
+
+      object.klass.connection.select_value _visitor.accept(jsons_select_manager)
+    end
+
+    def _object_query
+      @_object_query ||= -> do
+        attributes = object.klass.active_model_serializer._attributes
+        object_query = object.dup
+        object_query_arel = object_query.arel_table
+        attributes.each do |name, key|
+          if name.to_s == key.to_s
+            object_query = object_query.select(object_query_arel[name])
+          end
         end
-      end
+        object_query
+      end.call()
+    end
 
-      object_cte_name, object_as_json_arel = _relation_to_json_array_arel object_query
+    def _visitor
+      @_visitior ||= object.klass.connection.visitor
+    end
 
+    def _results_table_arel
       jsons_table = Arel::Table.new 'jsons'
-      jsons_row_to_json = Arel::Nodes::NamedFunction.new 'row_to_json', [Arel.sql(jsons_table.name)]
-      jsons_select_manager = jsons_table.project jsons_row_to_json
-      jsons_as = Arel::Nodes::As.new Arel.sql(jsons_table.name), Arel.sql(visitor.accept object_as_json_arel)
-      json_as = Arel::Nodes::As.new Arel.sql(object_cte_name), Arel.sql("(#{object_query.to_sql})")
-      jsons_select_manager.with([json_as, jsons_as])
-
-      object.klass.connection.select_value visitor.accept jsons_select_manager
+      jsons_row_to_json = _row_to_json jsons_table.name
+      jsons_table.project jsons_row_to_json
     end
 
     def _relation_to_json_array_arel(relation)
@@ -52,6 +64,10 @@ module PostgresExt::Serializers::ActiveModel
 
     def _row_to_json(table_name, aliaz = nil)
       _postgres_function_node 'row_to_json', [Arel.sql(table_name)], aliaz
+    end
+
+    def _postgres_cte_as(name, sql_string)
+      Arel::Nodes::As.new Arel.sql(name), Arel.sql(sql_string)
     end
 
     def _results_as_json_array(table_name, aliaz = nil)
