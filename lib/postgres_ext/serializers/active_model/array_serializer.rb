@@ -18,15 +18,19 @@ module PostgresExt::Serializers::ActiveModel
       end
     end
 
+    def initialize(*args)
+      super
+      @_ctes = []
+    end
+
     private
 
     def _postgres_serializable_array
-      object_cte_name, object_as_json_arel = _relation_to_json_array_arel _object_query
+      object_as_json_arel = _relation_to_json_array_arel _object_query
 
       jsons_select_manager = _results_table_arel
-      combined_jsons_as = _postgres_cte_as 'jsons', _visitor.accept(object_as_json_arel)
-      objects_as = _postgres_cte_as object_cte_name, "(#{_object_query.to_sql})"
-      jsons_select_manager.with([objects_as, combined_jsons_as])
+      @_ctes << _postgres_cte_as('jsons', _visitor.accept(object_as_json_arel))
+      jsons_select_manager.with @_ctes
 
       object.klass.connection.select_value _visitor.accept(jsons_select_manager)
     end
@@ -59,7 +63,9 @@ module PostgresExt::Serializers::ActiveModel
       json_table = Arel::Table.new "#{relation.table_name}_json"
       json_select_manager = json_table.project _results_as_json_array(json_table.name, relation.table_name)
 
-      [json_table.name, json_select_manager]
+      @_ctes << _postgres_cte_as(json_table.name, "(#{relation.to_sql})")
+
+      json_select_manager
     end
 
     def _row_to_json(table_name, aliaz = nil)
