@@ -10,7 +10,7 @@ describe 'ArraySerializer patch' do
     note_2 = Note.create name: 'test 2', content: 'dummy content'
 
     tag    = Tag.create name: 'tag 1', note_id: note_1.id
-    @json_expected = "{\"tags\":[{\"id\":#{tag.id},\"name\":\"tag 1\"}],\"notes\":[{\"id\":#{note_1.id},\"content\":\"dummy content\",\"name\":\"test\",\"tag_ids\":[#{tag.id}]},{\"id\":#{note_2.id},\"content\":\"dummy content\",\"name\":\"test 2\",\"tag_ids\":[]}]}"
+    @json_expected = "{\"tags\":[{\"id\":#{tag.id},\"name\":\"tag 1\",\"note_id\":#{note_1.id}}],\"notes\":[{\"id\":#{note_1.id},\"content\":\"dummy content\",\"name\":\"test\",\"tag_ids\":[#{tag.id}]},{\"id\":#{note_2.id},\"content\":\"dummy content\",\"name\":\"test 2\",\"tag_ids\":[]}]}"
   end
 
   it 'generates the proper json output for the serializer' do

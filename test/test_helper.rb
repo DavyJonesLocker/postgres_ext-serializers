@@ -37,6 +37,7 @@ end
 class TagSerializer < ActiveModel::Serializer
   attributes :id, :name
   embed :ids
+  has_one :note
 end
 
 DatabaseCleaner.strategy = :deletion
