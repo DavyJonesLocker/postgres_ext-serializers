@@ -70,16 +70,7 @@ module PostgresExt::Serializers::ActiveModel
         association_reflection = klass.reflect_on_association(key)
         if association.embed_ids?
           if association_reflection.macro == :has_many
-            association_class = association_reflection.klass
-            association_arel_table = association_class.arel_table
-            association_query = association_class.group association_arel_table[association_reflection.foreign_key]
-            association_query = association_query.select(association_arel_table[association_reflection.foreign_key])
-            id_column_name = "#{key.to_s.singularize}_ids"
-            cte_name = "#{id_column_name}_by_#{relation_query.table_name}"
-            association_query = association_query.select(_array_agg(association_arel_table[:id], id_column_name))
-            association_query = association_query.having(association_arel_table[association_reflection.foreign_key].in(ids_table_arel.project(ids_table_arel[:id])))
-            @_ctes << _postgres_cte_as(cte_name, "(#{association_query.to_sql})")
-            association_sql_tables << { table: cte_name, ids_column: id_column_name, foreign_key: association_reflection.foreign_key }
+            association_sql_tables << _process_has_many_relation(key, association_reflection, relation_query, ids_table_arel)
           else
             relation_query = relation_query.select(relation_query_arel["#{key}_id"])
           end
@@ -98,6 +89,19 @@ module PostgresExt::Serializers::ActiveModel
       end
 
       _arel_to_json_array_arel(arel, relation_query.table_name)
+    end
+
+    def _process_has_many_relation(key, association_reflection, relation_query, ids_table_arel)
+      association_class = association_reflection.klass
+      association_arel_table = association_class.arel_table
+      association_query = association_class.group association_arel_table[association_reflection.foreign_key]
+      association_query = association_query.select(association_arel_table[association_reflection.foreign_key])
+      id_column_name = "#{key.to_s.singularize}_ids"
+      cte_name = "#{id_column_name}_by_#{relation_query.table_name}"
+      association_query = association_query.select(_array_agg(association_arel_table[:id], id_column_name))
+      association_query = association_query.having(association_arel_table[association_reflection.foreign_key].in(ids_table_arel.project(ids_table_arel[:id])))
+      @_ctes << _postgres_cte_as(cte_name, "(#{association_query.to_sql})")
+      { table: cte_name, ids_column: id_column_name, foreign_key: association_reflection.foreign_key }
     end
 
     def _visitor
