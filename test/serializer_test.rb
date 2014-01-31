@@ -1,11 +1,11 @@
 require 'test_helper'
 
 describe 'ArraySerializer patch' do
-  let(:controller) { NotesController.new }
   let(:json_data)  { ActiveModel::Serializer.build_json(controller, relation, {}).to_json }
 
   context 'no where clause on root relation' do
     let(:relation)   { Note.all }
+    let(:controller) { NotesController.new }
 
     before do
       note_1 = Note.create name: 'test', content: 'dummy content'
@@ -29,6 +29,7 @@ describe 'ArraySerializer patch' do
 
   context 'where clause on root relation' do
     let(:relation)   { Note.where(name: 'test') }
+    let(:controller) { NotesController.new }
 
     before do
       note_1 = Note.create name: 'test', content: 'dummy content'
@@ -47,6 +48,18 @@ describe 'ArraySerializer patch' do
       relation.stubs(:to_a).returns([])
       json_data
       assert_received(relation, :to_a) { |expect| expect.never}
+    end
+  end
+
+  context 'computed value methods' do
+    let(:relation)   { Person.all }
+    let(:controller) { PeopleController.new }
+
+    it 'generates the proper json output for the serializer' do
+      person = Person.create first_name: 'Test', last_name: 'User'
+
+      json_expected = "{\"people\":[{\"id\":#{person.id},\"full_name\":\"Test User\"}]}"
+      json_data.must_equal json_expected
     end
   end
 end

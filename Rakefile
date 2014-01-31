@@ -47,6 +47,10 @@ namespace :db do
     end
   end
 
+  task :psql => :load_db_settings do
+    exec "psql #{ENV['DATABASE_NAME']}"
+  end
+
   task :drop => :load_db_settings do
     %x{ dropdb #{ENV['DATABASE_NAME']} }
   end
@@ -57,6 +61,13 @@ namespace :db do
 
   task :migrate => :load_db_settings do
     ActiveRecord::Base.establish_connection
+
+    ActiveRecord::Base.connection.create_table :people, force: true do |t|
+      t.string   "first_name"
+      t.string   "last_name"
+      t.datetime "created_at"
+      t.datetime "updated_at"
+    end
 
     ActiveRecord::Base.connection.create_table :notes, force: true do |t|
       t.string   "name"

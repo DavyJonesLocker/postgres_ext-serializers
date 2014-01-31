@@ -3,10 +3,6 @@ module PostgresExt::Serializers::ActiveModel
     def self.prepended(base)
       base.send :include, IncludeMethods
     end
-    # Look at ActiveModel.include! logic line 415
-    # object.klass.active_model_serializer._associations
-    # association.embed_in_root? && association.embeddable? ( 422)
-    # association.embed_objects? 
 
     module IncludeMethods
       def to_json(*)
@@ -48,7 +44,11 @@ module PostgresExt::Serializers::ActiveModel
       attributes = serializer_class._attributes
       attributes.each do |name, key|
         if name.to_s == key.to_s
-          relation_query = relation_query.select(relation_query_arel[name])
+          if klass.respond_to? "#{name}__sql"
+            relation_query = relation_query.select Arel::Nodes::As.new Arel.sql(klass.send("#{name}__sql")), Arel.sql(name.to_s)
+          else
+            relation_query = relation_query.select(relation_query_arel[name])
+          end
         end
       end
 

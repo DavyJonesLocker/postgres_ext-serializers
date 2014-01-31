@@ -14,25 +14,45 @@ Dotenv.load
 
 ActiveRecord::Base.establish_connection
 
-class Note < ActiveRecord::Base
-  has_many :tags
-end
-
-class Tag < ActiveRecord::Base
-  belongs_to :note
-end
-
-class NotesController < ActionController::Base
+class TestController < ActionController::Base
   def url_options
     {}
   end
 end
+
+class Person < ActiveRecord::Base
+  def full_name
+    "#{first_name} #{last_name}"
+  end
+
+  def self.full_name__sql
+    "first_name || ' ' || last_name"
+  end
+end
+
+class PeopleController < TestController; end
+
+class PersonSerializer < ActiveModel::Serializer
+  attributes :id, :full_name
+end
+
+class Note < ActiveRecord::Base
+  has_many :tags
+end
+
+class NotesController < TestController; end
 
 class NoteSerializer < ActiveModel::Serializer
   attributes :id, :content, :name
   has_many   :tags
   embed      :ids, include: true
 end
+
+class Tag < ActiveRecord::Base
+  belongs_to :note
+end
+
+
 
 class TagSerializer < ActiveModel::Serializer
   attributes :id, :name
