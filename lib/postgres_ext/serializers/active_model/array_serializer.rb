@@ -45,7 +45,7 @@ module PostgresExt::Serializers::ActiveModel
       attributes.each do |name, key|
         if name.to_s == key.to_s
           if serializer_class.respond_to? "#{name}__sql"
-            relation_query = relation_query.select Arel::Nodes::As.new Arel.sql(serializer_class.send("#{name}__sql")), Arel.sql(name.to_s)
+            relation_query = relation_query.select Arel::Nodes::As.new Arel.sql(serializer_class.send("#{name}__sql", options[:scope])), Arel.sql(name.to_s)
           elsif klass.respond_to? "#{name}__sql"
             relation_query = relation_query.select Arel::Nodes::As.new Arel.sql(klass.send("#{name}__sql")), Arel.sql(name.to_s)
           else

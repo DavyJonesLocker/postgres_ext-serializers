@@ -39,8 +39,12 @@ class PersonSerializer < ActiveModel::Serializer
     "#{object.last_name}, #{object.first_name}"
   end
 
-  def self.attendance_name__sql
-    "last_name || ', ' || first_name"
+  def self.attendance_name__sql(scope)
+    if scope && scope[:admin]
+      "'ADMIN ' || last_name || ', ' || first_name"
+    else
+      "last_name || ', ' || first_name"
+    end
   end
 end
 
