@@ -58,7 +58,7 @@ describe 'ArraySerializer patch' do
     it 'generates the proper json output for the serializer' do
       person = Person.create first_name: 'Test', last_name: 'User'
 
-      json_expected = "{\"people\":[{\"id\":#{person.id},\"full_name\":\"Test User\"}]}"
+      json_expected = %{{"people":[{"id":#{person.id},"full_name":"Test User","attendance_name":"User, Test"}]}}
       json_data.must_equal json_expected
     end
   end

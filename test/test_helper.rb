@@ -33,7 +33,15 @@ end
 class PeopleController < TestController; end
 
 class PersonSerializer < ActiveModel::Serializer
-  attributes :id, :full_name
+  attributes :id, :full_name, :attendance_name
+
+  def attendance_name
+    "#{object.last_name}, #{object.first_name}"
+  end
+
+  def self.attendance_name__sql
+    "last_name || ', ' || first_name"
+  end
 end
 
 class Note < ActiveRecord::Base
