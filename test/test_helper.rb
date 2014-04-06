@@ -21,10 +21,6 @@ class TestController < ActionController::Base
 end
 
 class Person < ActiveRecord::Base
-  def full_name
-    "#{first_name} #{last_name}"
-  end
-
   def self.full_name__sql
     "first_name || ' ' || last_name"
   end
@@ -35,12 +31,8 @@ class PeopleController < TestController; end
 class PersonSerializer < ActiveModel::Serializer
   attributes :id, :full_name, :attendance_name
 
-  def attendance_name
-    "#{object.last_name}, #{object.first_name}"
-  end
-
   def self.attendance_name__sql(scope)
-    if scope && scope[:admin]
+    if scope &&  scope[:admin]
       "'ADMIN ' || last_name || ', ' || first_name"
     else
       "last_name || ', ' || first_name"
