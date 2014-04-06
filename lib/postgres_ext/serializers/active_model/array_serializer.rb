@@ -60,10 +60,15 @@ module PostgresExt::Serializers::ActiveModel
 
       associations = serializer_class._associations
       association_sql_tables = []
+      ids_table_name = nil
+      id_query = nil
       unless associations.empty?
         ids_table_name = "#{relation.table_name}_ids"
         ids_table_arel =  Arel::Table.new ids_table_name
-        @_ctes << _postgres_cte_as(ids_table_name, "(#{relation.select(:id).to_sql})")
+        id_query = relation.dup.select(:id)
+        if foreign_key_column && constraining_table
+          id_query.where!(relation_query_arel[foreign_key_column].in(constraining_table.project(constraining_table[:id])))
+        end
       end
 
       associations.each do |key, association_class|
@@ -72,6 +77,9 @@ module PostgresExt::Serializers::ActiveModel
         association_reflection = klass.reflect_on_association(key)
         if association.embed_ids?
           if association_reflection.macro == :has_many
+            unless @_ctes.find { |as| as.left == ids_table_name }
+              @_ctes << _postgres_cte_as(ids_table_name, "(#{id_query.to_sql})")
+            end
             association_sql_tables << _process_has_many_relation(key, association_reflection, relation_query, ids_table_arel)
           else
             relation_query = relation_query.select(relation_query_arel["#{key}_id"])
