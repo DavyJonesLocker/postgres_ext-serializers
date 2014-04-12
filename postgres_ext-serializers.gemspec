@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = PostgresExt::Serializers::VERSION
   spec.authors       = ["Dan McClain"]
   spec.email         = ["git@danmcclain.net"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
+  spec.summary       = %q{Harness the power of PostgreSQL when crafting JSON reponses }
+  spec.description   = %q{}
   spec.homepage      = ""
   spec.license       = "MIT"
 
@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  # spec.add_runtime_dependency     'postgres_ext', '~> 2.1.0'
+  spec.add_runtime_dependency     'postgres_ext', '~> 2.1.0'
   spec.add_runtime_dependency     'active_model_serializers'
 
   spec.add_development_dependency 'bundler', '~> 1.3'
