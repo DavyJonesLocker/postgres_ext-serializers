@@ -51,7 +51,7 @@ class MySerializer < ActiveModel::Serializer
   end
 
   def self.full_name__sql(scope)
-    'first_name || ' ' || last_name'
+    "first_name || ' ' || last_name"
   end
 end
 ```
@@ -80,3 +80,20 @@ To work on postgres\_ext locally, follow these steps:
 Dan McClain [twitter](http://twitter.com/_danmcclain)
 [github](http://github.com/danmcclain)
 
+[We are very thankful for the many contributors](https://github.com/dockyard/postgres_ext-serializers/graphs/contributors)
+
+## Versioning ##
+
+This gem follows [Semantic Versioning](http://semver.org)
+
+## Want to help? ##
+
+Please do! We are always looking to improve this gem.
+
+## Legal ##
+
+[DockYard](http://dockyard.com), LLC &copy; 2014
+
+[@dockyard](http://twitter.com/dockyard)
+
+[Licensed under the MIT license](http://www.opensource.org/licenses/mit-license.php)
