@@ -7,6 +7,13 @@ require 'database_cleaner'
 unless ENV['CI'] || RUBY_PLATFORM =~ /java/
   require 'byebug'
 end
+
+# For code coverage, must be required before all application / gem / library code.
+unless ENV['NOCOVER']
+  require 'coveralls'
+  Coveralls.wear!
+end
+
 require 'postgres_ext/serializers'
 
 require 'dotenv'
