@@ -4,14 +4,13 @@ require 'test/unit'
 require 'mocha/setup'
 require 'bourne'
 require 'database_cleaner'
+require 'postgres_ext/serializers'
 unless ENV['CI'] || RUBY_PLATFORM =~ /java/
   require 'byebug'
 end
 
 require 'dotenv'
 Dotenv.load
-
-require 'postgres_ext/serializers'
 
 ActiveRecord::Base.establish_connection
 
