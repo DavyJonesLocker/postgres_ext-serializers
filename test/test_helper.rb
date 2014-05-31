@@ -4,10 +4,10 @@ require 'test/unit'
 require 'mocha/setup'
 require 'bourne'
 require 'database_cleaner'
+require 'postgres_ext/serializers'
 unless ENV['CI'] || RUBY_PLATFORM =~ /java/
   require 'byebug'
 end
-require 'postgres_ext/serializers'
 
 require 'dotenv'
 Dotenv.load

@@ -17,3 +17,6 @@ test/version_tmp
 tmp
 bin/
 .env
+.ruby-version
+.ruby-gemset
+gemfiles/*.lock
