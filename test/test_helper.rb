@@ -1,6 +1,5 @@
 require 'active_record'
 require 'minitest/autorun'
-require 'test/unit'
 require 'mocha/setup'
 require 'bourne'
 require 'database_cleaner'
