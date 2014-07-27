@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency     'active_model_serializers'
 
   spec.add_development_dependency 'bundler', '~> 1.3'
-  spec.add_development_dependency 'actionpack', '~> 4.0.0'
+  spec.add_development_dependency 'actionpack', '~> 4.0'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'minitest'
   spec.add_development_dependency 'm'
