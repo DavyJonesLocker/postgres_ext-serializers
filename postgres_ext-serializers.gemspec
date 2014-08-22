@@ -25,7 +25,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'actionpack', '~> 4.0'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'minitest'
-  spec.add_development_dependency 'm'
   spec.add_development_dependency 'bourne', '~> 1.3.0'
   spec.add_development_dependency 'database_cleaner'
   spec.add_development_dependency 'dotenv'

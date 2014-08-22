@@ -20,9 +20,10 @@ describe 'ArraySerializer patch' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      relation.stubs(:to_a).returns([])
-      json_data
-      assert_received(relation, :to_a) { |expect| expect.never}
+      relation.stub(:to_a,
+                    -> { raise Exception.new('#to_a should never be called') }) do
+        json_data
+      end
     end
   end
 
@@ -44,9 +45,10 @@ describe 'ArraySerializer patch' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      relation.stubs(:to_a).returns([])
-      json_data
-      assert_received(relation, :to_a) { |expect| expect.never}
+      relation.stub(:to_a,
+                    -> { raise Exception.new('#to_a should never be called') }) do
+        json_data
+      end
     end
   end
 end

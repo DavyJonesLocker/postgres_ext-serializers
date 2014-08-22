@@ -1,6 +1,5 @@
 require 'active_record'
 require 'minitest/autorun'
-require 'mocha/setup'
 require 'bourne'
 require 'database_cleaner'
 require 'postgres_ext/serializers'
@@ -11,7 +10,7 @@ end
 require 'dotenv'
 Dotenv.load
 
-ActiveRecord::Base.establish_connection
+ActiveRecord::Base.establish_connection(ENV['DATABASE_URL'])
 
 class TestController < ActionController::Base
   def url_options
@@ -65,7 +64,7 @@ end
 
 DatabaseCleaner.strategy = :deletion
 
-class MiniTest::Spec
+class Minitest::Spec
   class << self
     alias :context :describe
   end
