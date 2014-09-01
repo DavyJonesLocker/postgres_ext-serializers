@@ -50,17 +50,25 @@ class NoteSerializer < ActiveModel::Serializer
   embed      :ids, include: true
 end
 
+class ShortTagSerializer < ActiveModel::Serializer
+  attributes :id, :name
+end
+
+class OtherNoteSerializer < ActiveModel::Serializer
+  attributes :id, :name
+  has_many   :tags, serializer: ShortTagSerializer, embed: :ids, include: true
+end
+
 class Tag < ActiveRecord::Base
   belongs_to :note
 end
-
-
 
 class TagSerializer < ActiveModel::Serializer
   attributes :id, :name
   embed :ids
   has_one :note
 end
+
 
 DatabaseCleaner.strategy = :deletion
 

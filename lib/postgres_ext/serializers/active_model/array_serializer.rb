@@ -24,7 +24,7 @@ module PostgresExt::Serializers::ActiveModel
     private
 
     def _postgres_serializable_array
-      _include_relation_in_root(object)
+      _include_relation_in_root(object, serializer: @options[:each_serializer])
 
       jsons_select_manager = _results_table_arel
       jsons_select_manager.with @_ctes
@@ -32,13 +32,22 @@ module PostgresExt::Serializers::ActiveModel
       object.klass.connection.select_value _visitor.accept(jsons_select_manager)
     end
 
-    def _include_relation_in_root(relation, foreign_key_column = nil, constraining_table = nil)
+    def _include_relation_in_root(relation, *args)
+      local_options = args.extract_options!
+      foreign_key_column = args[0]
+      constraining_table = args[1]
+
       relation_query = relation.dup
       relation_query_arel = relation_query.arel_table
       @_embedded << relation.table_name
 
       klass = ActiveRecord::Relation === relation ? relation.klass : relation
-      serializer_class = _serializer_class(klass)
+      if local_options[:serializer].present?
+        serializer_class = local_options[:serializer]
+      else
+        serializer_class = _serializer_class(klass)
+      end
+
       _serializer = serializer_class.new klass.new, options
 
       attributes = serializer_class._attributes
@@ -87,9 +96,11 @@ module PostgresExt::Serializers::ActiveModel
         end
 
         if association.embed_in_root? && !@_embedded.member?(key.to_s)
-          _include_relation_in_root(association_reflection.klass,association_reflection.foreign_key,ids_table_arel)
+          _include_relation_in_root(association_reflection.klass, association_reflection.foreign_key, ids_table_arel,
+                                    serializer: association.target_serializer)
         end
       end
+
       arel = relation_query.arel.dup
 
       association_sql_tables.each do |assoc_hash|

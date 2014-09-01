@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_runtime_dependency     'postgres_ext', '~> 2.1'
-  spec.add_runtime_dependency     'active_model_serializers'
+  spec.add_runtime_dependency     'active_model_serializers', '~> 0.8.0'
 
   spec.add_development_dependency 'bundler', '~> 1.3'
   spec.add_development_dependency 'actionpack', '~> 4.0'

@@ -8,8 +8,8 @@ Climate](https://codeclimate.com/github/dockyard/postgres_ext-serializers.png)](
 [![Gem
 Version](https://badge.fury.io/rb/postgres_ext-serializers.png)](http://badge.fury.io/rb/postgres_ext-serializers)
 
-# Note: Current release is Rails 4.0.x compatible
-There will be updates to postgres_ext coming soon to make it 4.1 compatible
+# Note: Current release is AMS 0.8.x compatible
+There will be updates coming to make it 0.9.x compatible
 
 ## Looking for help? ##
 
