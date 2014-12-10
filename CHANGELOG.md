@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 0.0.4 - 2014-12-13
+
+### Added
+- Nothing.
+
+### Deprecated
+- Class methods on serializers for computed properties have been deprecated,
+  these should now be instance methods and alias like `current_user` can now
+  be used so no longer has `scope` argument. Sql computed properties on models
+  are still class methods.
+
+### Removed
+- Nothing.
+
+### Fixed
+- Fixed generation of SQL for github issues #18 and #20
+- Returns `[]` instead of `null` if data empty, required by frameworks like ember
+- Use postgres `json_agg` function if available
+- Fixed relation "" does not exist error
+
 ## 0.0.3 - 2014-09-01
 
 ### Added

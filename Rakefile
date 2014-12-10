@@ -83,6 +83,19 @@ namespace :db do
       t.datetime "updated_at"
     end
 
+    ActiveRecord::Base.connection.create_table :offers, force: true do |t|
+      t.integer  "created_by_id"
+      t.integer  "reviewed_by_id"
+      t.datetime "created_at"
+      t.datetime "updated_at"
+    end
+
+    ActiveRecord::Base.connection.create_table :users, force: true do |t|
+      t.string   "name"
+      t.datetime "created_at"
+      t.datetime "updated_at"
+    end
+
     puts 'Database migrated'
   end
 end

@@ -17,7 +17,7 @@ module PostgresExt::Serializers::ActiveModel
     def initialize(*)
       super
       @_ctes = []
-      @_results_tables = []
+      @_results_tables = {}
       @_embedded = []
     end
 
@@ -37,7 +37,7 @@ module PostgresExt::Serializers::ActiveModel
       foreign_key_column = args[0]
       constraining_table = args[1]
 
-      relation_query = relation.dup
+      relation_query = relation
       relation_query_arel = relation_query.arel_table
       @_embedded << relation.table_name
 
@@ -53,7 +53,10 @@ module PostgresExt::Serializers::ActiveModel
       attributes = serializer_class._attributes
       attributes.each do |name, key|
         if name.to_s == key.to_s
-          if serializer_class.respond_to? "#{name}__sql"
+          if _serializer.respond_to? "#{name}__sql"
+            relation_query = relation_query.select Arel::Nodes::As.new Arel.sql(_serializer.send("#{name}__sql")), Arel.sql(name.to_s)
+          elsif serializer_class.respond_to? "#{name}__sql"
+            warn "[DEPRECATION] postgres_ext-serializer - class serializer sql computed properties is deprecated. Please use instance method instead."
             relation_query = relation_query.select Arel::Nodes::As.new Arel.sql(serializer_class.send("#{name}__sql", options[:scope])), Arel.sql(name.to_s)
           elsif klass.respond_to? "#{name}__sql"
             relation_query = relation_query.select Arel::Nodes::As.new Arel.sql(klass.send("#{name}__sql")), Arel.sql(name.to_s)
@@ -64,7 +67,11 @@ module PostgresExt::Serializers::ActiveModel
       end
 
       if foreign_key_column && constraining_table
-        relation_query = relation_query.where(relation_query_arel[foreign_key_column].in(constraining_table.project(constraining_table[:id])))
+        if local_options[:belongs_to]
+          relation_query = relation_query.where(relation_query_arel[:id].in(constraining_table.project(constraining_table[foreign_key_column])))
+        else
+          relation_query = relation_query.where(relation_query_arel[foreign_key_column].in(constraining_table.project(constraining_table[:id])))
+        end
       end
 
       associations = serializer_class._associations
@@ -76,7 +83,11 @@ module PostgresExt::Serializers::ActiveModel
         ids_table_arel =  Arel::Table.new ids_table_name
         id_query = relation.dup.select(:id)
         if foreign_key_column && constraining_table
-          id_query.where!(relation_query_arel[foreign_key_column].in(constraining_table.project(constraining_table[:id])))
+          if local_options[:belongs_to]
+            id_query.where!(relation_query_arel[:id].in(constraining_table.project(constraining_table[foreign_key_column])))
+          else
+            id_query.where!(relation_query_arel[foreign_key_column].in(constraining_table.project(constraining_table[:id])))
+          end
         end
       end
 
@@ -84,20 +95,16 @@ module PostgresExt::Serializers::ActiveModel
         association = association_class.new key, _serializer, options
 
         association_reflection = klass.reflect_on_association(key)
+        fkey = association_reflection.foreign_key
         if association.embed_ids?
           if association_reflection.macro == :has_many
             unless @_ctes.find { |as| as.left == ids_table_name }
               @_ctes << _postgres_cte_as(ids_table_name, "(#{id_query.to_sql})")
             end
             association_sql_tables << _process_has_many_relation(key, association_reflection, relation_query, ids_table_arel)
-          else
-            relation_query = relation_query.select(relation_query_arel["#{key}_id"])
+          elsif klass.column_names.include?(fkey) && !attributes.include?(fkey.to_sym)
+            relation_query = relation_query.select(relation_query_arel[fkey])
           end
-        end
-
-        if association.embed_in_root? && !@_embedded.member?(key.to_s)
-          _include_relation_in_root(association_reflection.klass, association_reflection.foreign_key, ids_table_arel,
-                                    serializer: association.target_serializer)
         end
       end
 
@@ -109,7 +116,20 @@ module PostgresExt::Serializers::ActiveModel
         arel.project _coalesce_arrays(assoc_table[assoc_hash[:ids_column]], assoc_hash[:ids_column])
       end
 
-      _arel_to_json_array_arel(arel, relation_query.table_name)
+      relation_table = _arel_to_cte(arel, relation.table_name, foreign_key_column)
+
+      associations.each do |key, association_class|
+        association = association_class.new key, _serializer, options
+        association_reflection = klass.reflect_on_association(key)
+
+        if association.embed_in_root? && !@_embedded.member?(key.to_s)
+          belongs_to = (association_reflection.macro == :belongs_to)
+          constraining_table_param = association_reflection.macro == :has_many ? ids_table_arel : relation_table
+
+          _include_relation_in_root(association_reflection.klass, association_reflection.foreign_key,
+            constraining_table_param, serializer: association.target_serializer, belongs_to: belongs_to)
+        end
+      end
     end
 
     def _process_has_many_relation(key, association_reflection, relation_query, ids_table_arel)
@@ -138,11 +158,27 @@ module PostgresExt::Serializers::ActiveModel
     end
 
     def _results_table_arel
-      first = @_results_tables.shift
+      tables = []
+      @_results_tables.each do |key, array|
+        json_table = array
+          .map {|t| t.project(Arel.star) }
+          .inject {|t1, t2| Arel::Nodes::Union.new(t1, t2) }
+        json_table = Arel::Nodes::As.new json_table, Arel.sql("tbl")
+        json_table = Arel::Table.new(:t).from(json_table)
+
+        json_select_manager = ActiveRecord::Base.connection.send('postgresql_version') >= 90300 ?
+          json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match") :
+          json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{key}, 1 as match")
+
+        @_ctes << _postgres_cte_as("#{key}_as_json_array", _visitor.accept(json_select_manager))
+        tables << { table: "#{key}_as_json_array", column: key }
+      end
+
+      first = tables.shift
       first_table = Arel::Table.new first[:table]
       jsons_select = first_table.project first_table[first[:column]]
 
-      @_results_tables.each do |table_info|
+      tables.each do |table_info|
         table = Arel::Table.new table_info[:table]
         jsons_select = jsons_select.project table[table_info[:column]]
         jsons_select.join(table).on(first_table[:match].eq(table[:match]))
@@ -151,50 +187,24 @@ module PostgresExt::Serializers::ActiveModel
       @_ctes << _postgres_cte_as('jsons', _visitor.accept(jsons_select))
 
       jsons_table = Arel::Table.new 'jsons'
-      jsons_row_to_json = _row_to_json jsons_table.name
-      jsons_table.project jsons_row_to_json
+      jsons_table.project("row_to_json(#{jsons_table.name})")
     end
 
-    def _arel_to_json_array_arel(arel, name)
-      json_table = Arel::Table.new "#{name}_attributes_filter"
-      json_select_manager = json_table.project _results_as_json_array(json_table.name, name)
-      json_select_manager.project Arel::Nodes::As.new Arel.sql('1'), Arel.sql('match')
-
-      @_ctes << _postgres_cte_as(json_table.name, _visitor.accept(arel))
-      @_ctes << _postgres_cte_as("#{name}_as_json_array", _visitor.accept(json_select_manager))
-      @_results_tables << { table: "#{name}_as_json_array", column: name }
-    end
-
-    def _relation_to_json_array_arel(relation)
-      json_table = Arel::Table.new "#{relation.table_name}_json"
-      json_select_manager = json_table.project _results_as_json_array(json_table.name, relation.table_name)
-
-      @_ctes << _postgres_cte_as(json_table.name, "(#{relation.to_sql})")
-
-      json_select_manager
-    end
-
-    def _row_to_json(table_name, aliaz = nil)
-      _postgres_function_node 'row_to_json', [Arel.sql(table_name)], aliaz
+    def _arel_to_cte(arel, name, foreign_key_column)
+      cte_name = foreign_key_column ? "#{name}_#{foreign_key_column}" : name
+      cte_table = Arel::Table.new "#{cte_name}_attributes_filter"
+      @_ctes << _postgres_cte_as(cte_table.name, _visitor.accept(arel))
+      @_results_tables[name] = [] unless @_results_tables.has_key?(name)
+      @_results_tables[name] << cte_table
+      cte_table
     end
 
     def _postgres_cte_as(name, sql_string)
       Arel::Nodes::As.new Arel.sql(name), Arel.sql(sql_string)
     end
 
-    def _results_as_json_array(table_name, aliaz = nil)
-      row_as_json = _row_to_json table_name
-      array_of_json = _postgres_function_node 'array_agg', [row_as_json]
-      _postgres_function_node 'array_to_json', [array_of_json], aliaz
-    end
-
     def _array_agg(column, aliaz = nil)
        _postgres_function_node 'array_agg', [column], aliaz
-    end
-
-    def _array_agg_as_json(column, aliaz = nil)
-      array_agg = _array_agg [column]
-      _postgres_function_node 'array_to_json', [array_agg], aliaz
     end
 
     def _postgres_function_node(name, values, aliaz = nil)
@@ -202,4 +212,3 @@ module PostgresExt::Serializers::ActiveModel
     end
   end
 end
-
