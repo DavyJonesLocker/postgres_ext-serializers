@@ -48,23 +48,37 @@ discover a SQL version of this call by looking for a class method with
 the same name and the prefex `__sql`. Here's an example:
 
 ```ruby
+class MyModel < ActiveRecord::Base
+  def full_name
+    "#{object.first_name} #{object.last_name}"
+  end
+
+  def self.full_name__sql
+    "first_name || ' ' || last_name"
+  end
+end
+
 class MySerializer < ActiveModel::Serializer
   def full_name
     "#{object.first_name} #{object.last_name}"
   end
 
-  def self.full_name__sql(scope)
+  def full_name__sql
     "first_name || ' ' || last_name"
   end
 end
 ```
 
-The scope is passed to methods in a serializer, while there are no
-arguments passed to `__sql` methods in a model. You will not have access
-to the `current_user` alias of `scope`, but the scope passed in will be
-the same object. Right now, this string is used as a SQL literal, so be
-sure to *not* use untrusted values in the return value. This feature may
-change before the 1.0 release, if a cleaner implementation is found.
+There is no instance of MyModel created so sql computed properties needs to be
+a class method. Right now, this string is used as a SQL literal, so be sure to
+*not* use untrusted values in the return value.
+
+### Note: Postgres date, timestamp or timestamptz format
+Postgres 9.2 and 9.3 by default renders dates according to the current DateStyle
+Postgres setting, but many JSON processors require dates to be in ISO 8601
+format e.g. Firefox or Internet Explorer will parse string as invalid date with
+default DateStyle setting. Postgres 9.4 onwards now uses ISO 8601 for JSON
+serialization instead.
 
 ## Developing
 
