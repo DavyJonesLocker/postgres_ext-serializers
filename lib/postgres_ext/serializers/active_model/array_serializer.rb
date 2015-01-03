@@ -29,7 +29,7 @@ module PostgresExt::Serializers::ActiveModel
       jsons_select_manager = _results_table_arel
       jsons_select_manager.with @_ctes
 
-      object.klass.connection.select_value _visitor.accept(jsons_select_manager)
+      object.klass.connection.select_value _to_sql(jsons_select_manager)
     end
 
     def _include_relation_in_root(relation, *args)
@@ -116,7 +116,7 @@ module PostgresExt::Serializers::ActiveModel
         arel.project _coalesce_arrays(assoc_table[assoc_hash[:ids_column]], assoc_hash[:ids_column])
       end
 
-      relation_table = _arel_to_cte(arel, relation.table_name, foreign_key_column)
+      relation_table = _arel_to_cte(arel, relation.table_name, foreign_key_column, relation.try(:bind_values))
 
       associations.each do |key, association_class|
         association = association_class.new key, _serializer, options
@@ -145,8 +145,25 @@ module PostgresExt::Serializers::ActiveModel
       { table: cte_name, ids_column: id_column_name, foreign_key: association_reflection.foreign_key }
     end
 
-    def _visitor
-      @_visitior ||= object.klass.connection.visitor
+    def _to_sql(arel, bind_values = nil)
+      @_visitor ||= object.klass.connection.visitor
+      if @_visitor.method(:accept).arity == 2
+        collector = Arel::Collectors::SQLString.new
+        collector = @_visitor.accept arel, collector
+        res = collector.value
+        unless bind_values.nil?
+          bind_values.each_with_index do |bv, i|
+            if bv[1].is_a? String
+              res = res.gsub(/\$#{i+1}(\b|\Z)/, "'#{bv[1].gsub("'", "''")}'")
+            else
+              res = res.gsub(/\$#{i+1}(\b|\Z)/, bv[1].to_s)
+            end
+          end
+        end
+        res
+      else
+        @_visitor.accept arel
+      end
     end
 
     def _serializer_class(klass)
@@ -170,7 +187,7 @@ module PostgresExt::Serializers::ActiveModel
           json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match") :
           json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{key}, 1 as match")
 
-        @_ctes << _postgres_cte_as("#{key}_as_json_array", _visitor.accept(json_select_manager))
+        @_ctes << _postgres_cte_as("#{key}_as_json_array", _to_sql(json_select_manager))
         tables << { table: "#{key}_as_json_array", column: key }
       end
 
@@ -184,16 +201,16 @@ module PostgresExt::Serializers::ActiveModel
         jsons_select.join(table).on(first_table[:match].eq(table[:match]))
       end
 
-      @_ctes << _postgres_cte_as('jsons', _visitor.accept(jsons_select))
+      @_ctes << _postgres_cte_as('jsons', _to_sql(jsons_select))
 
       jsons_table = Arel::Table.new 'jsons'
       jsons_table.project("row_to_json(#{jsons_table.name})")
     end
 
-    def _arel_to_cte(arel, name, foreign_key_column)
+    def _arel_to_cte(arel, name, foreign_key_column, bind_values)
       cte_name = foreign_key_column ? "#{name}_#{foreign_key_column}" : name
       cte_table = Arel::Table.new "#{cte_name}_attributes_filter"
-      @_ctes << _postgres_cte_as(cte_table.name, _visitor.accept(arel))
+      @_ctes << _postgres_cte_as(cte_table.name, _to_sql(arel, bind_values))
       @_results_tables[name] = [] unless @_results_tables.has_key?(name)
       @_results_tables[name] << cte_table
       cte_table
