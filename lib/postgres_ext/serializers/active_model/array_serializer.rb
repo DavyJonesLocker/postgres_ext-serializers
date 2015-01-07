@@ -122,7 +122,7 @@ module PostgresExt::Serializers::ActiveModel
         arel.project _coalesce_arrays(assoc_table[assoc_hash[:ids_column]], assoc_hash[:ids_column])
       end
 
-      relation_table = _arel_to_cte(arel, relation.table_name)
+      relation_table = _arel_to_cte(arel, relation.table_name, relation.try(:bind_values))
 
       associations.each do |key, association_class|
         association = association_class.new key, _serializer, options
@@ -151,12 +151,14 @@ module PostgresExt::Serializers::ActiveModel
       { table: cte_name, ids_column: id_column_name, foreign_key: association_reflection.foreign_key }
     end
 
-    def _to_sql(arel)
+    def _to_sql(arel, bind_values = nil)
       @_visitor ||= object.klass.connection.visitor
       if @_visitor.method(:accept).arity == 2
         collector = Arel::Collectors::SQLString.new
         collector = @_visitor.accept arel, collector
-        collector.value
+        res = collector.value
+        bind_values.each_with_index {|bv, i| res = res.sub("$#{i+1}", bv[1].to_s)} unless bind_values.nil?
+        res
       else
         @_visitor.accept arel
       end
@@ -203,10 +205,10 @@ module PostgresExt::Serializers::ActiveModel
       jsons_table.project("row_to_json(#{jsons_table.name})")
     end
 
-    def _arel_to_cte(arel, name)
+    def _arel_to_cte(arel, name, bind_values)
       cte_name = _make_cte_name_unique("#{name}_attributes_filter")
       cte_table = Arel::Table.new cte_name
-      @_ctes << _postgres_cte_as(cte_table.name, _to_sql(arel))
+      @_ctes << _postgres_cte_as(cte_table.name, _to_sql(arel, bind_values))
       @_results_tables[name] = [] unless @_results_tables.has_key?(name)
       @_results_tables[name] << cte_table
       cte_table
