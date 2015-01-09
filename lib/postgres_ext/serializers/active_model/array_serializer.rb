@@ -157,7 +157,15 @@ module PostgresExt::Serializers::ActiveModel
         collector = Arel::Collectors::SQLString.new
         collector = @_visitor.accept arel, collector
         res = collector.value
-        bind_values.each_with_index {|bv, i| res = res.sub("$#{i+1}", bv[1].to_s)} unless bind_values.nil?
+        unless bind_values.nil?
+          bind_values.each_with_index do |bv, i|
+            if bv[1].is_a? String
+              res = res.gsub(/\$#{i+1}(\b|\Z)/, "'#{bv[1].gsub("'", "''")}'")
+            else
+              res = res.gsub(/\$#{i+1}(\b|\Z)/, bv[1].to_s)
+            end
+          end
+        end
         res
       else
         @_visitor.accept arel
