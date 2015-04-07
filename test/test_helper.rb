@@ -3,8 +3,10 @@ require 'minitest/autorun'
 require 'bourne'
 require 'database_cleaner'
 require 'postgres_ext/serializers'
-unless ENV['CI'] || RUBY_PLATFORM =~ /java/
-  require 'byebug'
+
+begin
+  require 'byebug' unless ENV['CI'] || RUBY_PLATFORM =~ /java/
+rescue LoadError
 end
 
 require 'dotenv'
