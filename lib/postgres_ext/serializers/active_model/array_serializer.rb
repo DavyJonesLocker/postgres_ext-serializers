@@ -179,10 +179,6 @@ module PostgresExt::Serializers::ActiveModel
         json_table = Arel::Nodes::As.new json_table, Arel.sql("tbl")
         json_table = Arel::Table.new(:t).from(json_table)
 
-        json_select_manager = ActiveRecord::Base.connection.send('postgresql_version') >= 90300 ?
-          json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match") :
-          json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{key}, 1 as match")
-
         @_ctes << _postgres_cte_as("#{key}_as_json_array", _visitor.accept(json_select_manager))
         tables << { table: "#{key}_as_json_array", column: key }
       end
@@ -222,6 +218,14 @@ module PostgresExt::Serializers::ActiveModel
 
     def _postgres_function_node(name, values, aliaz = nil)
       Arel::Nodes::NamedFunction.new(name, values, aliaz)
+    end
+
+    def json_select_manager(json_table)
+      if ActiveRecord::Base.connection.send('postgresql_version') >= 90300
+        json_table.project("COALESCE(json_agg(tbl), '[]') as #{@options[:root]}, 1 as match")
+      else
+        json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{@options[:root]}, 1 as match")
+      end
     end
   end
 end
