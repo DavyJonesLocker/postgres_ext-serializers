@@ -6,11 +6,7 @@ module PostgresExt::Serializers::ActiveModel
 
     module IncludeMethods
       def to_json(*)
-        if ActiveRecord::Relation === object
-          _postgres_serializable_array
-        else
-          super
-        end
+        ActiveRecord::Relation === object ? _postgres_serializable_array : super
       end
     end
 
