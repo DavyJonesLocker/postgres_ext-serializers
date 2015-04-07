@@ -179,8 +179,8 @@ module PostgresExt::Serializers::ActiveModel
         json_table = Arel::Nodes::As.new json_table, Arel.sql("tbl")
         json_table = Arel::Table.new(:t).from(json_table)
 
-        @_ctes << _postgres_cte_as("#{key}_as_json_array", _visitor.accept(json_select_manager))
-        tables << { table: "#{key}_as_json_array", column: key }
+        @_ctes << _postgres_cte_as("#{key}_as_json_array", _to_sql(json_select_manager json_table))
+        tables << { table: "#{key}_as_json_array", column: @options[:root] }
       end
 
       first = tables.shift
