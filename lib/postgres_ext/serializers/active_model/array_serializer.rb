@@ -50,7 +50,9 @@ module PostgresExt::Serializers::ActiveModel
 
       _serializer = serializer_class.new klass.new, options
 
-      attributes = serializer_class._attributes
+      attributes = serializer_class._attributes.select{ |key, value|
+        _serializer.send("include_#{key}?") }
+
       attributes.each do |name, key|
         if name.to_s == key.to_s
           if _serializer.respond_to? "#{name}__sql"
@@ -74,7 +76,9 @@ module PostgresExt::Serializers::ActiveModel
         end
       end
 
-      associations = serializer_class._associations
+      associations = serializer_class._associations.select{ |key, value|
+        _serializer.send("include_#{key}?") }
+
       association_sql_tables = []
       ids_table_name = nil
       id_query = nil
