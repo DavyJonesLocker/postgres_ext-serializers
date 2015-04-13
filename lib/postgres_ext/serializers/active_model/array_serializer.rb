@@ -51,7 +51,11 @@ module PostgresExt::Serializers::ActiveModel
       _serializer = serializer_class.new klass.new, options
 
       attributes = serializer_class._attributes.select do |key, value|
-        _serializer.send("include_#{key}?")
+        if(_serializer.respond_to?("include_#{key}?"))
+          _serializer.send("include_#{key}?")
+        else
+          true
+        end
       end
 
       attributes.each do |name, key|
@@ -78,7 +82,11 @@ module PostgresExt::Serializers::ActiveModel
       end
 
       associations = serializer_class._associations.select do |key, value|
-        _serializer.send("include_#{key}?")
+        if(_serializer.respond_to?("include_#{key}?"))
+          _serializer.send("include_#{key}?")
+        else
+          true
+        end
       end
 
       association_sql_tables = []
