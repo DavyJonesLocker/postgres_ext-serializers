@@ -80,6 +80,11 @@ end
 class User < ActiveRecord::Base
   has_many :offers, foreign_key: :created_by_id, inverse_of: :created_by
   has_many :reviewed_offers, foreign_key: :reviewed_by_id, inverse_of: :reviewed_by, class_name: 'Offer'
+  has_one :address
+end
+
+class Address < ActiveRecord::Base
+  belongs_to :user
 end
 
 class Offer < ActiveRecord::Base
@@ -88,16 +93,28 @@ class Offer < ActiveRecord::Base
 end
 
 class UserController < TestController; end
+class AddressController < TestController; end
 
 class OfferSerializer < ActiveModel::Serializer
   attributes :id
 end
 
+class AddressSerializer < ActiveModel::Serializer
+  attributes :id, :district_name
+  embed :ids, include: true
+end
+
 class UserSerializer < ActiveModel::Serializer
-  attributes :id, :name
+  attributes :id, :name, :mobile
   embed :ids, include: true
   has_many :offers, serializer: OfferSerializer
   has_many :reviewed_offers, serializer: OfferSerializer
+  has_one :address, serializer: AddressSerializer
+
+  def include_mobile?
+    current_user && current_user[:permission_id]
+  end
+  alias_method :include_address?, :include_mobile?
 end
 
 DatabaseCleaner.strategy = :deletion
