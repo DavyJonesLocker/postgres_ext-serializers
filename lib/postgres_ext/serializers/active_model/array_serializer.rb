@@ -21,16 +21,24 @@ module PostgresExt::Serializers::ActiveModel
       @_embedded = []
     end
 
-    private
-
     def _postgres_serializable_array
       _include_relation_in_root(object, serializer: @options[:each_serializer])
 
       jsons_select_manager = _results_table_arel
       jsons_select_manager.with @_ctes
 
-      object.klass.connection.select_value _visitor.accept(jsons_select_manager)
+      object.klass.connection.select_value _value(_visitor.accept(jsons_select_manager, Arel::Collectors::SQLString.new))
     end
+
+    def _postgres_cte_as(name, sql_string)
+      Arel::Nodes::As.new Arel.sql(name), Arel.sql(_value(sql_string))
+    end
+
+    def _value(sql_string)
+      sql_string.try(:value) || sql_string
+    end
+
+    private
 
     def _include_relation_in_root(relation, *args)
       local_options = args.extract_options!
@@ -176,7 +184,7 @@ module PostgresExt::Serializers::ActiveModel
           json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match") :
           json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{key}, 1 as match")
 
-        @_ctes << _postgres_cte_as("#{key}_as_json_array", _visitor.accept(json_select_manager))
+        @_ctes << _postgres_cte_as("#{key}_as_json_array", _visitor.accept(json_select_manager, Arel::Collectors::SQLString.new))
         tables << { table: "#{key}_as_json_array", column: key }
       end
 
@@ -190,7 +198,7 @@ module PostgresExt::Serializers::ActiveModel
         jsons_select.join(table).on(first_table[:match].eq(table[:match]))
       end
 
-      @_ctes << _postgres_cte_as('jsons', _visitor.accept(jsons_select))
+      @_ctes << _postgres_cte_as('jsons', _visitor.accept(jsons_select, Arel::Collectors::SQLString.new))
 
       jsons_table = Arel::Table.new 'jsons'
       jsons_table.project("row_to_json(#{jsons_table.name})")
@@ -199,14 +207,10 @@ module PostgresExt::Serializers::ActiveModel
     def _arel_to_cte(arel, name, foreign_key_column)
       cte_name = foreign_key_column ? "#{name}_#{foreign_key_column}" : name
       cte_table = Arel::Table.new "#{cte_name}_attributes_filter"
-      @_ctes << _postgres_cte_as(cte_table.name, _visitor.accept(arel))
+      @_ctes << _postgres_cte_as(cte_table.name, _visitor.accept(arel, Arel::Collectors::SQLString.new))
       @_results_tables[name] = [] unless @_results_tables.has_key?(name)
       @_results_tables[name] << cte_table
       cte_table
-    end
-
-    def _postgres_cte_as(name, sql_string)
-      Arel::Nodes::As.new Arel.sql(name), Arel.sql(sql_string)
     end
 
     def _array_agg(column, aliaz = nil)
