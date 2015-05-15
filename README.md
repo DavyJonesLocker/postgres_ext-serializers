@@ -53,7 +53,12 @@ ActiveModel::ArraySerializer.new(Product.all, each_serializer: ProductSerializer
 The code above executes the following query.
 
 ```sql
-(WITH products_attributes_filter AS (SELECT "products"."name" FROM "products"), products_as_json_array AS (SELECT COALESCE(json_agg(tbl), '[]') as products, 1 as match FROM (SELECT * FROM "products_attributes_filter") AS tbl), jsons AS (SELECT "products_as_json_array"."products" FROM "products_as_json_array") SELECT row_to_json(jsons) FROM "jsons")
+(WITH products_attributes_filter AS 
+  (SELECT "products"."name" FROM "products"), products_as_json_array AS 
+    (SELECT COALESCE(json_agg(tbl), '[]') as products, 1 as match FROM 
+      (SELECT * FROM "products_attributes_filter") AS tbl), jsons AS 
+        (SELECT "products_as_json_array"."products" FROM "products_as_json_array") 
+  SELECT row_to_json(jsons) FROM "jsons")
 ```
 
 ### Methods in Serializers and Models
