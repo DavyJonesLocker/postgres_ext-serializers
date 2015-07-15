@@ -45,7 +45,7 @@ ActiveRecord::Relation.
 If you are using methods to compute properties for your JSON responses
 in your models or serializers, postgres\_ext-serializers will try to
 discover a SQL version of this call by looking for a class method with
-the same name and the prefex `__sql`. Here's an example:
+the same name and the suffix `__sql`. Here's an example:
 
 ```ruby
 class MyModel < ActiveRecord::Base
