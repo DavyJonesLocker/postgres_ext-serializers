@@ -1,6 +1,5 @@
 require 'test_helper'
 
-
 describe 'ArraySerializer patch' do
   let(:json_data)  { ActiveModel::Serializer.build_json(controller, relation, options).to_json }
 
@@ -35,6 +34,18 @@ describe 'ArraySerializer patch' do
       controller.stubs(:current_user).returns({ admin: true })
 
       json_expected = %{{"people":[{"id":#{person.id},"full_name":"Test User","attendance_name":"ADMIN User, Test"}]}}
+      json_data.must_equal json_expected
+    end
+  end
+
+  context 'root option' do
+    let(:relation)   { Person.all }
+    let(:controller) { PeopleController.new }
+    let(:person)     { Person.create first_name: 'Test', last_name: 'User' }
+    let(:options)    { { root: false } }
+
+    it 'is false' do
+      json_expected = %{[{"id":#{person.id},"full_name":"Test User","attendance_name":"User, Test"}]}
       json_data.must_equal json_expected
     end
   end
