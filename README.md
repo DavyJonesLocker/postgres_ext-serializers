@@ -9,7 +9,7 @@ Climate](https://codeclimate.com/github/dockyard/postgres_ext-serializers.png)](
 Version](https://badge.fury.io/rb/postgres_ext-serializers.png)](http://badge.fury.io/rb/postgres_ext-serializers)
 
 # Note: Current release is AMS 0.8.x compatible
-There will be updates coming to make it 0.9.x compatible
+There will be updates coming to make it 0.9.x compatible. Updated to support Rails 4.2 serializers.
 
 ## Looking for help? ##
 
@@ -39,6 +39,27 @@ Just `require 'postgres_ext/serializers'` and use
 ActiveModel::Serializers as you normally would!
 Postgres\_ext-serializers will take over anytime you try to serialize an
 ActiveRecord::Relation.
+
+### Basic Example
+
+```ruby
+class ProductSerializer < ActiveModel::Serializer
+  attributes :name
+end
+
+ActiveModel::ArraySerializer.new(Product.all, each_serializer: ProductSerializer).to_json
+```
+
+The code above executes the following query.
+
+```sql
+(WITH products_attributes_filter AS 
+  (SELECT "products"."name" FROM "products"), products_as_json_array AS 
+    (SELECT COALESCE(json_agg(tbl), '[]') as products, 1 as match FROM 
+      (SELECT * FROM "products_attributes_filter") AS tbl), jsons AS 
+        (SELECT "products_as_json_array"."products" FROM "products_as_json_array") 
+  SELECT row_to_json(jsons) FROM "jsons")
+```
 
 ### Methods in Serializers and Models
 
