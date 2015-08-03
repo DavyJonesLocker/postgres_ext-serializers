@@ -6,11 +6,12 @@ module PostgresExt::Serializers::ActiveModel
 
     module IncludeMethods
       def to_json(*)
-        if ActiveRecord::Relation === object
+        json = if ActiveRecord::Relation === object
           _postgres_serializable_array
         else
           super
         end
+        @options[:root] ? json : JSON.parse(json)[object.table_name].to_json
       end
     end
 
