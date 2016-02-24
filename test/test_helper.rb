@@ -62,6 +62,11 @@ class OtherNoteSerializer < ActiveModel::Serializer
   has_many   :tags, serializer: ShortTagSerializer, embed: :ids, include: true
 end
 
+class CustomKeysNoteSerializer < ActiveModel::Serializer
+  attributes :id, :name
+  has_many   :tags, embed: :ids, include: true, key: :tag_names, embed_key: :name
+end
+
 class Tag < ActiveRecord::Base
   belongs_to :note
 end
