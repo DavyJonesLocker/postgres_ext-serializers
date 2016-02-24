@@ -4,7 +4,10 @@ require 'bourne'
 require 'database_cleaner'
 require 'postgres_ext/serializers'
 unless ENV['CI'] || RUBY_PLATFORM =~ /java/
-  require 'byebug'
+  begin
+    require 'byebug'
+  rescue LoadError
+  end
 end
 
 require 'dotenv'
