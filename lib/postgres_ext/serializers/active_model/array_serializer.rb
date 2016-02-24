@@ -117,7 +117,7 @@ module PostgresExt::Serializers::ActiveModel
             end
             association_sql_tables << _process_has_many_relation(association.key, association.embed_key, association_reflection, relation_query, ids_table_arel)
           elsif klass.column_names.include?(fkey) && !attributes.include?(fkey.to_sym)
-            relation_query = relation_query.select(relation_query_arel[fkey])
+            relation_query = relation_query.select(relation_query_arel[fkey].as(association.key.to_s))
           end
         end
       end
