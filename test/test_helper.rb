@@ -81,7 +81,7 @@ class Tag < ActiveRecord::Base
   belongs_to :note
 end
 
-class TagController < TestController; end
+class TagsController < TestController; end
 
 class TagSerializer < ActiveModel::Serializer
   attributes :id, :name
@@ -110,7 +110,7 @@ class Offer < ActiveRecord::Base
   belongs_to :reviewed_by, class_name: 'User', inverse_of: :reviewed_offers
 end
 
-class UserController < TestController; end
+class UsersController < TestController; end
 class AddressController < TestController; end
 
 class OfferSerializer < ActiveModel::Serializer

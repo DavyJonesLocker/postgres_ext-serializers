@@ -24,7 +24,7 @@ module PostgresExt::Serializers::ActiveModel
     private
 
     def _postgres_serializable_array
-      _include_relation_in_root(object, serializer: @options[:each_serializer])
+      _include_relation_in_root(object, serializer: @options[:each_serializer], root: @options[:root])
 
       jsons_select_manager = _results_table_arel
       jsons_select_manager.with @_ctes
@@ -39,7 +39,6 @@ module PostgresExt::Serializers::ActiveModel
 
       relation_query = relation
       relation_query_arel = relation_query.arel_table
-      @_embedded << relation.table_name
 
       klass = ActiveRecord::Relation === relation ? relation.klass : relation
       if local_options[:serializer].present?
@@ -49,6 +48,8 @@ module PostgresExt::Serializers::ActiveModel
       end
 
       _serializer = serializer_class.new klass.new, options
+      root_key = local_options.fetch(:root, _serializer.root_name.to_s.pluralize).to_s
+      @_embedded << root_key
 
       attributes = serializer_class._attributes.select do |key, value|
         if(_serializer.respond_to?("include_#{key}?"))
@@ -130,7 +131,7 @@ module PostgresExt::Serializers::ActiveModel
         arel.project _coalesce_arrays(assoc_table[assoc_hash[:ids_column]], assoc_hash[:ids_column])
       end
 
-      relation_table = _arel_to_cte(arel, relation.table_name, relation.try(:bind_values))
+      relation_table = _arel_to_cte(arel, root_key, relation.try(:bind_values))
 
       associations.each do |key, association_class|
         association = association_class.new key, _serializer, options
@@ -141,7 +142,7 @@ module PostgresExt::Serializers::ActiveModel
           constraining_table_param = association_reflection.macro == :has_many ? ids_table_arel : relation_table
 
           _include_relation_in_root(association_reflection.klass, association_reflection.foreign_key,
-            constraining_table_param, serializer: association.target_serializer, belongs_to: belongs_to)
+            constraining_table_param, serializer: association.target_serializer, belongs_to: belongs_to, root: association_class.options[:root])
         end
       end
     end

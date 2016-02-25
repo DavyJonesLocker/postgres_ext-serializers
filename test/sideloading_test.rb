@@ -55,7 +55,7 @@ describe 'ArraySerializer patch' do
 
   context 'root relation has belongs_to association' do
     let(:relation)   { Tag.all }
-    let(:controller) { TagController.new }
+    let(:controller) { TagsController.new }
     let(:options)    { { each_serializer: TagWithNoteSerializer } }
 
     before do
@@ -78,13 +78,13 @@ describe 'ArraySerializer patch' do
 
   context 'relation has multiple associates to the same table' do
     let(:relation)   { User.order(:id) }
-    let(:controller) { UserController.new }
+    let(:controller) { UsersController.new }
 
     before do
       reviewer = User.create name: 'Peter'
       user = User.create name: 'John'
       offer = Offer.create created_by: user, reviewed_by: reviewer
-      @json_expected = "{\"users\":[{\"id\":#{reviewer.id},\"name\":\"Peter\",\"offer_ids\":[],\"reviewed_offer_ids\":[#{offer.id}]}, \n {\"id\":#{user.id},\"name\":\"John\",\"offer_ids\":[#{offer.id}],\"reviewed_offer_ids\":[]}],\"offers\":[{\"id\":#{offer.id}}]}"
+      @json_expected = "{\"users\":[{\"id\":#{reviewer.id},\"name\":\"Peter\",\"offer_ids\":[],\"reviewed_offer_ids\":[#{offer.id}]}, \n {\"id\":#{user.id},\"name\":\"John\",\"offer_ids\":[#{offer.id}],\"reviewed_offer_ids\":[]}],\"offers\":[{\"id\":#{offer.id}}],\"reviewed_offers\":[{\"id\":#{offer.id}}]}"
     end
 
     it 'generates the proper json output for the serializer' do
@@ -101,7 +101,7 @@ describe 'ArraySerializer patch' do
 
   context 'empty data should return empty array not null' do
     let(:relation)   { Tag.all }
-    let(:controller) { TagController.new }
+    let(:controller) { TagsController.new }
     let(:options)    { { each_serializer: TagWithNoteSerializer } }
 
     before do
@@ -122,7 +122,7 @@ describe 'ArraySerializer patch' do
 
   context 'nested filtering support' do
     let(:relation)   { Tag.where(note: { name: 'Title' }) }
-    let(:controller) { TagController.new }
+    let(:controller) { TagsController.new }
 
     before do
       note = Note.create content: 'Test', name: 'Title'
@@ -146,20 +146,20 @@ describe 'ArraySerializer patch' do
 
   context 'support for include_[attrbute]' do
     let(:relation)   { User.all }
-    let(:controller) { UserController.new }
+    let(:controller) { UsersController.new }
     let(:options)    { { each_serializer: UserSerializer } }
     before           { @user = User.create name: 'John', mobile: "51111111" }
 
     it 'generates json for serializer when include_[attribute]? is true' do
       address = Address.create district_name: "mumbai", user_id: @user.id
-      json_expected = "{\"users\":[{\"id\":#{@user.id},\"name\":\"John\",\"mobile\":\"51111111\",\"offer_ids\":[],\"reviewed_offer_ids\":[]}],\"offers\":[],\"addresses\":[{\"id\":#{address.id},\"district_name\":\"mumbai\"}]}"
+      json_expected = "{\"users\":[{\"id\":#{@user.id},\"name\":\"John\",\"mobile\":\"51111111\",\"offer_ids\":[],\"reviewed_offer_ids\":[]}],\"offers\":[],\"reviewed_offers\":[],\"addresses\":[{\"id\":#{address.id},\"district_name\":\"mumbai\"}]}"
 
       controller.stubs(:current_user).returns({ permission_id: 1 })
       json_data.must_equal json_expected
     end
 
     it 'generates json for serializer when include_[attribute]? is false' do
-      json_output = "{\"users\":[{\"id\":#{@user.id},\"name\":\"John\",\"offer_ids\":[],\"reviewed_offer_ids\":[]}],\"offers\":[]}"
+      json_output = "{\"users\":[{\"id\":#{@user.id},\"name\":\"John\",\"offer_ids\":[],\"reviewed_offer_ids\":[]}],\"offers\":[],\"reviewed_offers\":[]}"
       json_data.must_equal json_output
     end
   end
