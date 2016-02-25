@@ -2,7 +2,11 @@ require 'active_record'
 require 'minitest/autorun'
 require 'bourne'
 require 'database_cleaner'
-require 'postgres_ext/serializers'
+if ENV['TEST_UNPATCHED_AMS']
+  require 'active_model_serializers'
+else
+  require 'postgres_ext/serializers'
+end
 unless ENV['CI'] || RUBY_PLATFORM =~ /java/
   begin
     require 'byebug'
