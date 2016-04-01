@@ -2,11 +2,11 @@
 
 
 [![Build
-Status](https://secure.travis-ci.org/dockyard/postgres_ext-serializers.png?branch=master)](http://travis-ci.org/dockyard/postgres_ext-serializers)
+Status](https://secure.travis-ci.org/DockYard/postgres_ext-serializers.png?branch=master)](https://travis-ci.org/DockYard/postgres_ext-serializers)
 [![Code
 Climate](https://codeclimate.com/github/dockyard/postgres_ext-serializers.png)](https://codeclimate.com/github/dockyard/postgres_ext-serializers)
 [![Gem
-Version](https://badge.fury.io/rb/postgres_ext-serializers.png)](http://badge.fury.io/rb/postgres_ext-serializers)
+Version](https://badge.fury.io/rb/postgres_ext-serializers.png)](https://badge.fury.io/rb/postgres_ext-serializers)
 
 # Note: Current release is AMS 0.8.x compatible
 There will be updates coming to make it 0.9.x compatible
