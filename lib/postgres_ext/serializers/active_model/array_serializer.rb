@@ -96,7 +96,7 @@ module PostgresExt::Serializers::ActiveModel
       unless associations.empty?
         ids_table_name = "#{relation.table_name}_ids"
         ids_table_arel =  Arel::Table.new ids_table_name
-        id_query = relation.dup.select(:id)
+        id_query = relation.dup.select(relation_query_arel[:id])
         if foreign_key_column && constraining_table
           if local_options[:belongs_to]
             id_query.where!(relation_query_arel[:id].in(constraining_table.project(constraining_table[foreign_key_column])))
@@ -131,7 +131,10 @@ module PostgresExt::Serializers::ActiveModel
         arel.project _coalesce_arrays(assoc_table[assoc_hash[:ids_column]], assoc_hash[:ids_column])
       end
 
-      relation_table = _arel_to_cte(arel, root_key, relation.try(:bind_values))
+      bind_values = []
+      bind_values += relation.arel.bind_values if relation.respond_to?(:arel) && relation.arel.respond_to?(:bind_values)
+      bind_values += relation.bind_values if relation.respond_to?(:bind_values)
+      relation_table = _arel_to_cte(arel, root_key, bind_values)
 
       associations.each do |key, association_class|
         association = association_class.new key, _serializer, options
