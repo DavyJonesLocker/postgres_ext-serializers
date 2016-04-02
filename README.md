@@ -92,8 +92,8 @@ To work on postgres\_ext-serializers locally, follow these steps:
  4. Run `bundle exec rake db:create`, this will create the test database
  5. Run `bundle exec rake db:migrate`, this will set up the database tables required
     by the test
- 6. Run `BUNDLE_GEMFILE='gemfiles/Gemfile.activerecord-4.0.x' bundle install --quiet` to create the Gemfile.lock.
- 7. Run `bundle exec rake test:all` to run tests against all supported versions of Active Record (currently only 4.0.x)
+ 6. Run `BUNDLE_GEMFILE='gemfiles/Gemfile.activerecord-4.2.x' bundle install --quiet` to create the Gemfile.lock.
+ 7. Run `bundle exec rake test:all` to run tests against all supported versions of Active Record (currently 4.0.x, 4.1.x, 4.2.x)
 
 ## Authors
 
