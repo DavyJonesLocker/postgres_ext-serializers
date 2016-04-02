@@ -140,8 +140,9 @@ module PostgresExt::Serializers::ActiveModel
         if association.embed_in_root? && !@_embedded.member?(key.to_s)
           belongs_to = (association_reflection.macro == :belongs_to)
           constraining_table_param = association_reflection.macro == :has_many ? ids_table_arel : relation_table
+          association_query = _reflection_scope(association_reflection)
 
-          _include_relation_in_root(association_reflection.klass, association_reflection.foreign_key,
+          _include_relation_in_root(association_query, association_reflection.foreign_key,
             constraining_table_param, serializer: association.target_serializer, belongs_to: belongs_to, root: association_class.options[:root])
         end
       end
@@ -150,14 +151,24 @@ module PostgresExt::Serializers::ActiveModel
     def _process_has_many_relation(key, embed_key, association_reflection, relation_query, ids_table_arel)
       association_class = association_reflection.klass
       association_arel_table = association_class.arel_table
-      association_query = association_class.group association_arel_table[association_reflection.foreign_key]
+      association_query = _reflection_scope(association_reflection)
+      association_query = association_query.group association_arel_table[association_reflection.foreign_key]
       association_query = association_query.select(association_arel_table[association_reflection.foreign_key])
       id_column_name = key.to_s
       cte_name = "#{id_column_name}_by_#{relation_query.table_name}"
-      association_query = association_query.select(_array_agg(association_arel_table[embed_key.to_sym], id_column_name))
+      association_query = association_query.reorder(nil).select(_array_agg(association_arel_table[embed_key.to_sym], association_query.arel.orders, id_column_name))
       association_query = association_query.having(association_arel_table[association_reflection.foreign_key].in(ids_table_arel.project(ids_table_arel[:id])))
       @_ctes << _postgres_cte_as(cte_name, "(#{association_query.to_sql})")
       { table: cte_name, ids_column: id_column_name, foreign_key: association_reflection.foreign_key }
+    end
+
+    def _reflection_scope(reflection)
+      relation = reflection.klass.all
+      if reflection.scope
+        relation.instance_exec(&reflection.scope)
+      else
+        relation
+      end
     end
 
     def _to_sql(arel, bind_values = nil)
@@ -244,8 +255,18 @@ module PostgresExt::Serializers::ActiveModel
       Arel::Nodes::As.new Arel.sql(name), Arel.sql(sql_string)
     end
 
-    def _array_agg(column, aliaz = nil)
-       _postgres_function_node 'array_agg', [column], aliaz
+    def _array_agg(column, orders, aliaz = nil)
+      if orders.present?
+        # Hack to build ORDER BY inside aggregate function
+        stmt = Arel::Nodes::SelectStatement.new
+        stmt.cores.last.projections << column
+        stmt.orders = orders
+
+        sql = stmt.to_sql.sub(/^SELECT /, '')
+        column = Arel::Nodes::SqlLiteral.new(sql)
+      end
+
+      _postgres_function_node 'array_agg', [column], aliaz
     end
 
     def _postgres_function_node(name, values, aliaz = nil)

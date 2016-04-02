@@ -163,4 +163,52 @@ describe 'ArraySerializer patch' do
       json_data.must_equal json_output
     end
   end
+
+  context 'respects order in default scope of has_many association' do
+    let(:relation)   { Note.all }
+    let(:controller) { NotesController.new }
+    let(:options)    { { each_serializer: SortedTagsNoteSerializer } }
+
+    before do
+      note = Note.create name: 'test', content: 'dummy content'
+
+      tag2 = Tag.create name: 'tag 2', note_id: note.id
+      tag1 = Tag.create name: 'tag 1', note_id: note.id
+      tag3 = Tag.create name: 'tag 3', note_id: note.id
+      @json_expected = "{\"notes\":[{\"id\":#{note.id},\"sorted_tag_ids\":[#{tag1.id},#{tag2.id},#{tag3.id}]}],\"sorted_tags\":[{\"id\":#{tag1.id},\"name\":\"tag 1\"}, \n {\"id\":#{tag2.id},\"name\":\"tag 2\"}, \n {\"id\":#{tag3.id},\"name\":\"tag 3\"}]}"
+    end
+
+    it 'generates json output with correctly sorted tag ids and tags' do
+      $break = true
+      begin
+        json_data.must_equal @json_expected
+      ensure
+        $break = false
+      end
+    end
+  end
+
+  context 'respects order in custom scope of has_many association' do
+    let(:relation)   { Note.all }
+    let(:controller) { NotesController.new }
+    let(:options)    { { each_serializer: CustomSortedTagsNoteSerializer } }
+
+    before do
+      note = Note.create name: 'test', content: 'dummy content'
+
+      tag2 = Tag.create name: 'tag 2', note_id: note.id
+      tag1 = Tag.create name: 'tag 1', note_id: note.id
+      tag3 = Tag.create name: 'tag 3', note_id: note.id
+      @json_expected = "{\"notes\":[{\"id\":#{note.id},\"custom_sorted_tag_ids\":[#{tag1.id},#{tag2.id},#{tag3.id}]}],\"custom_sorted_tags\":[{\"id\":#{tag1.id},\"name\":\"tag 1\"}, \n {\"id\":#{tag2.id},\"name\":\"tag 2\"}, \n {\"id\":#{tag3.id},\"name\":\"tag 3\"}]}"
+    end
+
+    it 'generates json output with correctly sorted tag ids and tags' do
+      $break = true
+      begin
+        json_data.must_equal @json_expected
+      ensure
+        $break = false
+      end
+    end
+  end
 end
