@@ -2,7 +2,11 @@ require 'active_record'
 require 'minitest/autorun'
 require 'bourne'
 require 'database_cleaner'
-require 'postgres_ext/serializers'
+if ENV['TEST_UNPATCHED_AMS']
+  require 'active_model_serializers'
+else
+  require 'postgres_ext/serializers'
+end
 unless ENV['CI'] || RUBY_PLATFORM =~ /java/
   begin
     require 'byebug'
@@ -77,7 +81,7 @@ class Tag < ActiveRecord::Base
   belongs_to :note
 end
 
-class TagController < TestController; end
+class TagsController < TestController; end
 
 class TagSerializer < ActiveModel::Serializer
   attributes :id, :name
@@ -106,7 +110,7 @@ class Offer < ActiveRecord::Base
   belongs_to :reviewed_by, class_name: 'User', inverse_of: :reviewed_offers
 end
 
-class UserController < TestController; end
+class UsersController < TestController; end
 class AddressController < TestController; end
 
 class OfferSerializer < ActiveModel::Serializer
