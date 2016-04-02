@@ -168,11 +168,8 @@ module PostgresExt::Serializers::ActiveModel
         res = collector.value
         unless bind_values.nil?
           bind_values.each_with_index do |bv, i|
-            if bv[1].is_a? String
-              res = res.gsub(/\$#{i+1}(\b|\Z)/, "'#{bv[1].gsub("'", "''")}'")
-            else
-              res = res.gsub(/\$#{i+1}(\b|\Z)/, bv[1].to_s)
-            end
+            value = ActiveRecord::Base.connection.quote(bv[1])
+            res = res.gsub(/\$#{i+1}(\b|\Z)/, value)
           end
         end
         res
