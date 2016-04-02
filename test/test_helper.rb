@@ -47,6 +47,8 @@ end
 
 class Note < ActiveRecord::Base
   has_many :tags
+  has_many :sorted_tags
+  has_many :custom_sorted_tags, lambda { order(:name) }, class_name: 'Tag'
 end
 
 class NotesController < TestController; end
@@ -58,6 +60,10 @@ class NoteSerializer < ActiveModel::Serializer
 end
 
 class ShortTagSerializer < ActiveModel::Serializer
+  attributes :id, :name
+end
+
+class SortedTagSerializer < ActiveModel::Serializer
   attributes :id, :name
 end
 
@@ -77,8 +83,25 @@ class CustomKeysNoteSerializer < ActiveModel::Serializer
   has_many   :tags, serializer: CustomKeyTagSerializer, embed: :ids, include: true, key: :tag_names, embed_key: :name
 end
 
+class SortedTagsNoteSerializer < ActiveModel::Serializer
+  attributes :id
+  has_many   :sorted_tags
+  embed      :ids, include: true
+end
+
+class CustomSortedTagsNoteSerializer < ActiveModel::Serializer
+  attributes :id
+  has_many   :custom_sorted_tags, serializer: ShortTagSerializer
+  embed      :ids, include: true
+end
+
 class Tag < ActiveRecord::Base
   belongs_to :note
+end
+
+class SortedTag < Tag
+  belongs_to :note
+  default_scope { order(:name) }
 end
 
 class TagsController < TestController; end
