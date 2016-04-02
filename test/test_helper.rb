@@ -49,6 +49,7 @@ class Note < ActiveRecord::Base
   has_many :tags
   has_many :sorted_tags
   has_many :custom_sorted_tags, lambda { order(:name) }, class_name: 'Tag'
+  has_many :popular_tags, lambda { where(popular: true) }, class_name: 'Tag'
 end
 
 class NotesController < TestController; end
