@@ -115,9 +115,9 @@ module PostgresExt::Serializers::ActiveModel
             unless @_ctes.find { |as| as.left == ids_table_name }
               @_ctes << _postgres_cte_as(ids_table_name, "(#{id_query.to_sql})")
             end
-            association_sql_tables << _process_has_many_relation(key, association_reflection, relation_query, ids_table_arel)
+            association_sql_tables << _process_has_many_relation(association.key, association.embed_key, association_reflection, relation_query, ids_table_arel)
           elsif klass.column_names.include?(fkey) && !attributes.include?(fkey.to_sym)
-            relation_query = relation_query.select(relation_query_arel[fkey])
+            relation_query = relation_query.select(relation_query_arel[fkey].as(association.key.to_s))
           end
         end
       end
@@ -146,14 +146,14 @@ module PostgresExt::Serializers::ActiveModel
       end
     end
 
-    def _process_has_many_relation(key, association_reflection, relation_query, ids_table_arel)
+    def _process_has_many_relation(key, embed_key, association_reflection, relation_query, ids_table_arel)
       association_class = association_reflection.klass
       association_arel_table = association_class.arel_table
       association_query = association_class.group association_arel_table[association_reflection.foreign_key]
       association_query = association_query.select(association_arel_table[association_reflection.foreign_key])
-      id_column_name = "#{key.to_s.singularize}_ids"
+      id_column_name = key.to_s
       cte_name = "#{id_column_name}_by_#{relation_query.table_name}"
-      association_query = association_query.select(_array_agg(association_arel_table[:id], id_column_name))
+      association_query = association_query.select(_array_agg(association_arel_table[embed_key.to_sym], id_column_name))
       association_query = association_query.having(association_arel_table[association_reflection.foreign_key].in(ids_table_arel.project(ids_table_arel[:id])))
       @_ctes << _postgres_cte_as(cte_name, "(#{association_query.to_sql})")
       { table: cte_name, ids_column: id_column_name, foreign_key: association_reflection.foreign_key }
@@ -185,7 +185,7 @@ module PostgresExt::Serializers::ActiveModel
     end
 
     def _coalesce_arrays(column, aliaz = nil)
-      _postgres_function_node 'coalesce', [column, Arel.sql("'{}'::int[]")], aliaz
+      _postgres_function_node 'COALESCE', [column, Arel.sql("'{}'")], aliaz
     end
 
     def _results_table_arel

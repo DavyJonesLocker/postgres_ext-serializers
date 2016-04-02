@@ -20,6 +20,22 @@ describe 'ArraySerializer patch' do
     end
   end
 
+  context 'custom key and embed_key' do
+    let(:relation)   { Note.all }
+    let(:controller) { NotesController.new }
+    let(:options)    { { each_serializer: CustomKeysNoteSerializer } }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note
+    end
+
+    it 'generates the proper json output' do
+      json_expected = %{{"notes":[{"id":#{@note.id},"name":"Title","tag_names":["#{@tag.name}"]}],"tags":[{"id":#{@tag.id},"name":"My tag","tagged_note_id":#{@note.id}}]}}
+      json_data.must_equal json_expected
+    end
+  end
+
   context 'computed value methods' do
     let(:relation)   { Person.all }
     let(:controller) { PeopleController.new }
