@@ -77,12 +77,12 @@ describe 'ArraySerializer patch' do
   end
 
   context 'relation has multiple associates to the same table' do
-    let(:relation)   { User.all }
+    let(:relation)   { User.order(:id) }
     let(:controller) { UserController.new }
 
     before do
-      user = User.create name: 'John'
       reviewer = User.create name: 'Peter'
+      user = User.create name: 'John'
       offer = Offer.create created_by: user, reviewed_by: reviewer
       @json_expected = "{\"users\":[{\"id\":#{reviewer.id},\"name\":\"Peter\",\"offer_ids\":[],\"reviewed_offer_ids\":[#{offer.id}]}, \n {\"id\":#{user.id},\"name\":\"John\",\"offer_ids\":[#{offer.id}],\"reviewed_offer_ids\":[]}],\"offers\":[{\"id\":#{offer.id}}]}"
     end
