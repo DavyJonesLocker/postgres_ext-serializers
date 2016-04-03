@@ -179,12 +179,7 @@ describe 'ArraySerializer patch' do
     end
 
     it 'generates json output with correctly sorted tag ids and tags' do
-      $break = true
-      begin
-        json_data.must_equal @json_expected
-      ensure
-        $break = false
-      end
+      json_data.must_equal @json_expected
     end
   end
 
@@ -203,12 +198,7 @@ describe 'ArraySerializer patch' do
     end
 
     it 'generates json output with correctly sorted tag ids and tags' do
-      $break = true
-      begin
-        json_data.must_equal @json_expected
-      ensure
-        $break = false
-      end
+      json_data.must_equal @json_expected
     end
   end
 end

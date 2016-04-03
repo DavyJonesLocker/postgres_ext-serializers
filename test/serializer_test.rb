@@ -67,12 +67,7 @@ describe 'ArraySerializer patch' do
 
     it 'generates the proper json output' do
       json_expected = %{{"notes":[{"id":#{@note.id},"content":"Test","name":"Title","tag_ids":[#{@tag.id}]}],"tags":[{"id":#{@tag.id},"name":"My tag","note_id":#{@note.id}}]}}
-      begin
-        $break = true
-        json_data.must_equal json_expected
-      ensure
-        $break = false
-      end
+      json_data.must_equal json_expected
     end
   end
 end
