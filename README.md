@@ -8,8 +8,21 @@ Climate](https://codeclimate.com/github/dockyard/postgres_ext-serializers.png)](
 [![Gem
 Version](https://badge.fury.io/rb/postgres_ext-serializers.png)](https://badge.fury.io/rb/postgres_ext-serializers)
 
-# Note: Current release is AMS 0.8.x compatible
-There will be updates coming to make it 0.9.x compatible
+This Gem patches the ArraySerializer in Active Model Serializers to offload JSON serialization to PostgreSQL, which is much faster and more memory efficient than serialization in Ruby.
+
+Instead of instantiating lots of ActiveRecord models, which are then serialized to a hash using ActiveModel Serializers and finally converted to JSON, this Gem builds the entire JSON in the database and returns it as a single string that can be passed through to the client unmodified.
+
+## How does it work? ##
+
+You can read [Avoid Rails When Generating JSON responses with PostgreSQL](https://dockyard.com/blog/2014/05/27/avoid-rails-when-generating-json-responses-with-postgresql) by Dan McClain on the DockYard Blog or [watch a YouTube video](https://www.youtube.com/watch?v=tYTw3Jshrqo) of his Postgres Open 2014 Talk [Using PostgreSQL, not Rails, to make Rails faster](http://slides.com/danmcclain/postgresopen-2014) (Slides) to understand how this Gem works under the hood.
+
+## Supported Versions ##
+
+This gem currently only works with the older active\_model\_serializers 0.8.x and activerecord 4.0/4.1/4.2. For activerecord 4.2 support you need at least postgres\_ext version 2.4.0.
+
+You must be using at least Postgres 9.2, but 9.4 or later is recommended.
+
+Support for newer AMS versions might be added in the future.
 
 ## Looking for help? ##
 
