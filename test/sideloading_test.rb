@@ -121,22 +121,20 @@ describe 'ArraySerializer patch' do
   end
 
   context 'nested filtering support' do
-    let(:relation)   { Tag.where(note: { name: 'Title' }) }
+    let(:relation)   { TagWithNote.where(notes: { name: 'Title' }) }
     let(:controller) { TagsController.new }
 
     before do
       note = Note.create content: 'Test', name: 'Title'
       tag = Tag.create name: 'My tag', note: note
-      @json_expected = ""
+      @json_expected = "{\"tags\":[{\"id\":#{tag.id},\"name\":\"My tag\",\"note_id\":#{note.id}}],\"notes\":[{\"id\":#{note.id},\"content\":\"Test\",\"name\":\"Title\",\"tag_ids\":[#{tag.id}]}]}"
     end
 
     it 'generates the proper json output for the serializer' do
-      skip('to be fixed')
       json_data.must_equal @json_expected
     end
 
     it 'does not instantiate ruby objects for relations' do
-      skip('to be fixed')
       relation.stub(:to_a,
                     -> { raise Exception.new('#to_a should never be called') }) do
         json_data

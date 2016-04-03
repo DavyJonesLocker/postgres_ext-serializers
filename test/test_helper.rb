@@ -105,6 +105,11 @@ class SortedTag < Tag
   default_scope { order(:name) }
 end
 
+class TagWithNote < Tag
+  belongs_to :note
+  default_scope { joins(:note) }
+end
+
 class TagsController < TestController; end
 
 class TagSerializer < ActiveModel::Serializer
