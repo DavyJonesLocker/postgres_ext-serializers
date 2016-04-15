@@ -200,4 +200,34 @@ describe 'ArraySerializer patch' do
       json_data.must_equal @json_expected
     end
   end
+
+  context 'sideloads correct records with pagination on unordered relation' do
+    let(:relation)   { Note.limit(1).offset(1) }
+    let(:controller) { NotesController.new }
+    let(:options)    { }
+
+    before do
+      note1 = Note.new name: 'note 1', content: 'dummy content'
+      note2 = Note.new name: 'note 2', content: 'dummy content'
+      note3 = Note.new name: 'note 3', content: 'dummy content'
+      # Randomize physical table order of notes.
+      [note1, note2, note3].shuffle.map(&:save)
+      # Make predictable result by making sure note1 is the second physical record.
+      note1.destroy
+      note1 = Note.create id: note1.id, name: 'note 1', content: 'dummy content'
+      note3.destroy
+      note3 = Note.create id: note3.id, name: 'note 3', content: 'dummy content'
+
+      tag1 = Tag.new name: 'tag 1', note_id: note1.id
+      tag2 = Tag.new name: 'tag 2', note_id: note2.id
+      tag3 = Tag.new name: 'tag 3', note_id: note3.id
+      [tag1, tag2, tag3].shuffle.map(&:save)
+
+      @json_expected = "{\"notes\":[{\"id\":#{note1.id},\"content\":\"dummy content\",\"name\":\"note 1\",\"tag_ids\":[#{tag1.id}]}],\"tags\":[{\"id\":#{tag1.id},\"name\":\"tag 1\",\"note_id\":#{note1.id}}]}"
+    end
+
+    it 'generates json output with matching tag ids and tags' do
+      json_data.must_equal @json_expected
+    end
+  end
 end
