@@ -128,6 +128,15 @@ module PostgresExt::Serializers::ActiveModel
 
       arel = relation_query.arel.dup
 
+      if arel.orders.empty? && associations.present? && (arel.limit || arel.offset && arel.offset > 0)
+        # Join ids CTE to filter CTE to ensure same records are selected in absence of ORDER BY.
+        # This is needed because without an explicit ORDER BY record order in postgres is non-deterministic.
+        # The record order only matters, if there is a LIMIT or OFFSET present.
+        arel.join(ids_table_arel, Arel::Nodes::InnerJoin).on(relation_query_arel[:id].eq(ids_table_arel[:id]))
+        arel.limit = nil
+        arel.offset = nil
+      end
+
       association_sql_tables.each do |assoc_hash|
         assoc_table = Arel::Table.new assoc_hash[:table]
         arel.join(assoc_table, Arel::Nodes::OuterJoin).on(relation_query_arel[:id].eq(assoc_table[assoc_hash[:foreign_key]]))
