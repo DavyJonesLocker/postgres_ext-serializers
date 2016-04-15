@@ -14,22 +14,25 @@ module PostgresExt::Serializers::ActiveModel
       end
     end
 
-    def initialize(*)
-      super
+    private
+
+    def _reset_internal_state!
       @_ctes = []
       @_results_tables = {}
       @_embedded = []
+      @_cte_names = []
+      @_connection = object.klass.connection
+      @_visitor = @_connection.visitor
     end
 
-    private
-
     def _postgres_serializable_array
+      _reset_internal_state!
       _include_relation_in_root(object, serializer: @options[:each_serializer], root: @options[:root])
 
       jsons_select_manager = _results_table_arel
       jsons_select_manager.with @_ctes
 
-      object.klass.connection.select_value _to_sql(jsons_select_manager)
+      @_connection.select_value _to_sql(jsons_select_manager)
     end
 
     def _include_relation_in_root(relation, *args)
@@ -175,14 +178,13 @@ module PostgresExt::Serializers::ActiveModel
     end
 
     def _to_sql(arel, bind_values = nil)
-      @_visitor ||= object.klass.connection.visitor
       if @_visitor.method(:accept).arity == 2
         collector = Arel::Collectors::SQLString.new
         collector = @_visitor.accept arel, collector
         res = collector.value
         unless bind_values.nil?
           bind_values.each_with_index do |bv, i|
-            value = ActiveRecord::Base.connection.quote(bv[1])
+            value = @_connection.quote(bv[1])
             res = res.gsub(/\$#{i+1}(\b|\Z)/, value)
           end
         end
@@ -209,7 +211,7 @@ module PostgresExt::Serializers::ActiveModel
         json_table = Arel::Nodes::As.new json_table, Arel.sql("tbl")
         json_table = Arel::Table.new(:t).from(json_table)
 
-        json_select_manager = ActiveRecord::Base.connection.send('postgresql_version') >= 90300 ?
+        json_select_manager = @_connection.send('postgresql_version') >= 90300 ?
           json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match") :
           json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{key}, 1 as match")
 
@@ -243,7 +245,6 @@ module PostgresExt::Serializers::ActiveModel
     end
 
     def _make_cte_name_unique(orig_name)
-      @_cte_names ||= []
       cte_name = orig_name
       idx = 2
       while @_cte_names.include?(cte_name) do
