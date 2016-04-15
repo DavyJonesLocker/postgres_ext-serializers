@@ -29,7 +29,7 @@ module PostgresExt::Serializers::ActiveModel
       _reset_internal_state!
       _include_relation_in_root(object, serializer: @options[:each_serializer], root: @options[:root])
 
-      jsons_select_manager = _results_table_arel
+      jsons_select_manager = _results_table_arel(@options[:single_record] ? @options[:root] : nil)
       jsons_select_manager.with @_ctes
 
       @_connection.select_value _to_sql(jsons_select_manager)
@@ -202,7 +202,7 @@ module PostgresExt::Serializers::ActiveModel
       _postgres_function_node 'COALESCE', [column, Arel.sql("'{}'")], aliaz
     end
 
-    def _results_table_arel
+    def _results_table_arel(singular_key = nil)
       tables = []
       @_results_tables.each do |key, array|
         json_table = array
@@ -211,9 +211,14 @@ module PostgresExt::Serializers::ActiveModel
         json_table = Arel::Nodes::As.new json_table, Arel.sql("tbl")
         json_table = Arel::Table.new(:t).from(json_table)
 
-        json_select_manager = @_connection.send('postgresql_version') >= 90300 ?
-          json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match") :
+        json_select_manager = if singular_key.to_s == key.to_s
+          # Single resource is embedded as object instead of array.
+          json_table.project("COALESCE(row_to_json(tbl), '{}') as #{key}, 1 as match")
+        elsif @_connection.send('postgresql_version') >= 90300
+          json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match")
+        else
           json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{key}, 1 as match")
+        end
 
         @_ctes << _postgres_cte_as("#{key}_as_json_array", _to_sql(json_select_manager))
         tables << { table: "#{key}_as_json_array", column: key }

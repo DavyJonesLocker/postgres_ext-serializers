@@ -1,3 +1,4 @@
+require 'test_helper'
 
 describe 'ArraySerializer patch' do
   let(:json_data)  { ActiveModel::Serializer.build_json(controller, relation, options).to_json }

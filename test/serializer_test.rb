@@ -1,8 +1,8 @@
 require 'test_helper'
 
-
 describe 'ArraySerializer patch' do
-  let(:json_data)  { ActiveModel::Serializer.build_json(controller, relation, options).to_json }
+  let(:serializer) { ActiveModel::Serializer.build_json(controller, relation, options) }
+  let(:json_data)  { serializer.to_json }
 
   context 'specify serializer' do
     let(:relation)   { Note.all }
@@ -67,6 +67,62 @@ describe 'ArraySerializer patch' do
 
     it 'generates the proper json output' do
       json_expected = %{{"notes":[{"id":#{@note.id},"content":"Test","name":"Title","tag_ids":[#{@tag.id}]}],"tags":[{"id":#{@tag.id},"name":"My tag","note_id":#{@note.id}}]}}
+      json_data.must_equal json_expected
+    end
+  end
+
+  context 'serialize singular record' do
+    let(:relation)   { Note.where(name: 'Title').first }
+    let(:controller) { NotesController.new }
+    let(:options)    { }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note, popular: true
+    end
+
+    it 'uses the array serializer' do
+      serializer.must_be_instance_of ActiveModel::ArraySerializer
+    end
+
+    it 'generates the proper json output' do
+      json_expected = %{{"note":{"id":#{@note.id},"content":"Test","name":"Title","tag_ids":[#{@tag.id}]},"tags":[{"id":#{@tag.id},"name":"My tag","note_id":#{@note.id}}]}}
+      json_data.must_equal json_expected
+    end
+  end
+
+  context 'serialize single record with custom serializer' do
+    let(:relation)   { Note.where(name: 'Title').first }
+    let(:controller) { NotesController.new }
+    let(:options)    { { serializer: OtherNoteSerializer } }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note
+    end
+
+    it 'uses the array serializer' do
+      serializer.must_be_instance_of ActiveModel::ArraySerializer
+    end
+
+    it 'generates the proper json output' do
+      json_expected = %{{"other_note":{"id":#{@note.id},"name":"Title","tag_ids":[#{@tag.id}]},"tags":[{"id":#{@tag.id},"name":"My tag"}]}}
+      json_data.must_equal json_expected
+    end
+  end
+
+  context 'force single record mode' do
+    let(:relation)   { Note.where(name: 'Title').limit(1) }
+    let(:controller) { NotesController.new }
+    let(:options)    { { root: 'note', single_record: true } }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note, popular: true
+    end
+
+    it 'generates the proper json output' do
+      json_expected = %{{"note":{"id":#{@note.id},"content":"Test","name":"Title","tag_ids":[#{@tag.id}]},"tags":[{"id":#{@tag.id},"name":"My tag","note_id":#{@note.id}}]}}
       json_data.must_equal json_expected
     end
   end
