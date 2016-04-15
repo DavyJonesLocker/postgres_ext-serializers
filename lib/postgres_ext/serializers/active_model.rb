@@ -4,3 +4,4 @@ module PostgresExt::Serializers
 end
 
 require 'postgres_ext/serializers/active_model/array_serializer'
+require 'postgres_ext/serializers/active_model/serializer'
