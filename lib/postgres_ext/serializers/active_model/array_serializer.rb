@@ -6,7 +6,8 @@ module PostgresExt::Serializers::ActiveModel
 
     module IncludeMethods
       def to_json(*)
-        if ActiveRecord::Relation === object
+        root = @options.fetch(:root, self.class.root)
+        if ActiveRecord::Relation === object && root != false
           _postgres_serializable_array
         else
           super
