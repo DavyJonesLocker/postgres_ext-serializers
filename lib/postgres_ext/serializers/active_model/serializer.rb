@@ -28,10 +28,13 @@ module PostgresExt::Serializers::ActiveModel
           primary_key = klass.primary_key
           resource = klass.where(primary_key => resource.send(primary_key)).limit(1)
 
-          super(controller, resource, options)
-        else
-          serializer_instance
+          serializer_instance = super(controller, resource, options)
+        elsif ActiveRecord::Relation === resource && options[:single_record] && options[:root].nil? && serializer_instance.class.root.nil?
+          # Fix controller derived root key to be singular for single_record mode.
+          serializer_instance.options[:root] = controller.controller_name.singularize
         end
+
+        serializer_instance
       end
     end
   end
