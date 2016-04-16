@@ -26,24 +26,34 @@ module PostgresExt::Serializers::ActiveModel
       end
     end
 
-    def _reset_internal_state!
-      @_ctes = []
-      @_results_tables = {}
-      @_embedded = []
-      @_cte_names = []
-      @_connection = object.klass.connection
-      @_visitor = @_connection.visitor
+    def _postgres_serializable_array
+      _connection.select_value _serializer_sql
     end
 
-    def _postgres_serializable_array
+    def _connection
+      object.klass.connection
+    end
+
+    def _serializer_sql
       _reset_internal_state!
-      root_key = _include_relation_in_root(object, serializer: @options[:each_serializer], root: @options[:root], single_record: @options[:single_record])
+      root_key = _include_relation_in_root(object,
+        serializer: @options[:each_serializer],
+        root: @options[:root],
+        single_record: @options[:single_record]
+      )
 
       singular_resource_key = root_key if @options[:single_record]
       jsons_select_manager = _results_table_arel(singular_resource_key)
       jsons_select_manager.with @_ctes
 
-      @_connection.select_value _to_sql(jsons_select_manager)
+      _to_sql(jsons_select_manager)
+    end
+
+    def _reset_internal_state!
+      @_ctes = []
+      @_results_tables = {}
+      @_embedded = []
+      @_cte_names = []
     end
 
     def _include_relation_in_root(relation, *args)
@@ -202,19 +212,20 @@ module PostgresExt::Serializers::ActiveModel
     end
 
     def _to_sql(arel, bind_values = nil)
-      if @_visitor.method(:accept).arity == 2
+      accept = _connection.visitor.method(:accept)
+      if accept.arity == 2
         collector = Arel::Collectors::SQLString.new
-        collector = @_visitor.accept arel, collector
+        collector = accept.call arel, collector
         res = collector.value
         unless bind_values.nil?
           bind_values.each_with_index do |bv, i|
-            value = @_connection.quote(bv[1])
+            value = _connection.quote(bv[1])
             res = res.gsub(/\$#{i+1}(\b|\Z)/, value)
           end
         end
         res
       else
-        @_visitor.accept arel
+        accept.call arel
       end
     end
 
@@ -238,7 +249,7 @@ module PostgresExt::Serializers::ActiveModel
         json_select_manager = if singular_key.to_s == key.to_s
           # Single resource is embedded as object instead of array.
           json_table.project("COALESCE(row_to_json(tbl), '{}') as #{key}, 1 as match")
-        elsif @_connection.send('postgresql_version') >= 90300
+        elsif _connection.send('postgresql_version') >= 90300
           json_table.project("COALESCE(json_agg(tbl), '[]') as #{key}, 1 as match")
         else
           json_table.project("COALESCE(array_to_json(array_agg(row_to_json(tbl))), '[]') as #{key}, 1 as match")
