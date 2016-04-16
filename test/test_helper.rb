@@ -7,10 +7,13 @@ if ENV['TEST_UNPATCHED_AMS']
 else
   require 'postgres_ext/serializers'
 end
-unless ENV['CI'] || RUBY_PLATFORM =~ /java/
+unless ENV['CI']
   begin
-    require 'byebug'
-  rescue LoadError
+    require 'pry'
+    require 'pry-highlight'
+    require 'pry-byebug' unless RUBY_PLATFORM =~ /java/
+  rescue LoadError => e
+    STDERR.puts "test/test_helper.rb:#{__LINE__}: #{e.message}"
   end
 end
 
