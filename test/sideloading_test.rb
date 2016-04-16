@@ -1,7 +1,8 @@
 require 'test_helper'
 
 describe 'ArraySerializer patch' do
-  let(:json_data)  { ActiveModel::Serializer.build_json(controller, relation, options).to_json }
+  let(:serializer) { ActiveModel::Serializer.build_json(controller, relation, options) }
+  let(:json_data)  { serializer.to_json }
   let(:options)    { }
 
   context 'no where clause on root relation' do
