@@ -17,6 +17,15 @@ module PostgresExt::Serializers::ActiveModel
 
     private
 
+    # Provide single_record behavior for original ArraySerializer.
+    def _serializable_array
+      if @options[:single_record]
+        super.first
+      else
+        super
+      end
+    end
+
     def _reset_internal_state!
       @_ctes = []
       @_results_tables = {}
