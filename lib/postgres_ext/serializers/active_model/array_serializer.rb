@@ -6,7 +6,8 @@ module PostgresExt::Serializers::ActiveModel
 
     module IncludeMethods
       def to_json(*)
-        if ActiveRecord::Relation === object
+        root = @options.fetch(:root, self.class.root)
+        if ActiveRecord::Relation === object && root != false
           _postgres_serializable_array
         else
           super
@@ -15,6 +16,15 @@ module PostgresExt::Serializers::ActiveModel
     end
 
     private
+
+    # Provide single_record behavior for original ArraySerializer.
+    def _serializable_array
+      if @options[:single_record]
+        super.first
+      else
+        super
+      end
+    end
 
     def _reset_internal_state!
       @_ctes = []
@@ -27,9 +37,10 @@ module PostgresExt::Serializers::ActiveModel
 
     def _postgres_serializable_array
       _reset_internal_state!
-      _include_relation_in_root(object, serializer: @options[:each_serializer], root: @options[:root])
+      root_key = _include_relation_in_root(object, serializer: @options[:each_serializer], root: @options[:root], single_record: @options[:single_record])
 
-      jsons_select_manager = _results_table_arel(@options[:single_record] ? @options[:root] : nil)
+      singular_resource_key = root_key if @options[:single_record]
+      jsons_select_manager = _results_table_arel(singular_resource_key)
       jsons_select_manager.with @_ctes
 
       @_connection.select_value _to_sql(jsons_select_manager)
@@ -51,7 +62,9 @@ module PostgresExt::Serializers::ActiveModel
       end
 
       _serializer = serializer_class.new klass.new, options
-      root_key = local_options.fetch(:root, _serializer.root_name.to_s.pluralize).to_s
+      root_key = local_options[:root].to_s if local_options[:root]
+      root_key ||=  _serializer.root_name.to_s if local_options[:single_record]
+      root_key ||=  _serializer.root_name.to_s.pluralize
       @_embedded << root_key
 
       attributes = serializer_class._attributes.select do |key, value|
@@ -161,6 +174,8 @@ module PostgresExt::Serializers::ActiveModel
             constraining_table_param, serializer: association.target_serializer, belongs_to: belongs_to, root: association_class.options[:root])
         end
       end
+
+      root_key
     end
 
     def _process_has_many_relation(key, embed_key, association_reflection, relation_query, ids_table_arel)

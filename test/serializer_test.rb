@@ -111,10 +111,10 @@ describe 'ArraySerializer patch' do
     end
   end
 
-  context 'force single record mode' do
+  context 'forcing single record mode' do
     let(:relation)   { Note.where(name: 'Title').limit(1) }
     let(:controller) { NotesController.new }
-    let(:options)    { { root: 'note', single_record: true } }
+    let(:options)    { { single_record: true } }
 
     before do
       @note = Note.create content: 'Test', name: 'Title'
@@ -123,6 +123,22 @@ describe 'ArraySerializer patch' do
 
     it 'generates the proper json output' do
       json_expected = %{{"note":{"id":#{@note.id},"content":"Test","name":"Title","tag_ids":[#{@tag.id}]},"tags":[{"id":#{@tag.id},"name":"My tag","note_id":#{@note.id}}]}}
+      json_data.must_equal json_expected
+    end
+  end
+
+  context 'forcing single record mode with custom root key' do
+    let(:relation)   { Note.where(name: 'Title').limit(1) }
+    let(:controller) { NotesController.new }
+    let(:options)    { { single_record: true, root: :foo } }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note, popular: true
+    end
+
+    it 'generates the proper json output' do
+      json_expected = %{{"foo":{"id":#{@note.id},"content":"Test","name":"Title","tag_ids":[#{@tag.id}]},"tags":[{"id":#{@tag.id},"name":"My tag","note_id":#{@note.id}}]}}
       json_data.must_equal json_expected
     end
   end
