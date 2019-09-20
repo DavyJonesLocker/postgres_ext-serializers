@@ -1,3 +1,4 @@
+require 'uri'
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 
@@ -14,7 +15,7 @@ task :setup do
   if File.exist?('.env')
     puts 'This will overwrite your existing .env file'
   end
-  print 'Enter your database name: [postgres_ext_serializers_test] '
+  print 'Enter your database name: [postgres_ext_test] '
   db_name = STDIN.gets.chomp
   print 'Enter your database user: [] '
   db_user = STDIN.gets.chomp
@@ -22,16 +23,20 @@ task :setup do
   db_password = STDIN.gets.chomp
   print 'Enter your database server: [localhost] '
   db_server = STDIN.gets.chomp
+  print 'Enter your database port: [5432] '
+  db_port = STDIN.gets.chomp
 
   db_name = 'postgres_ext_test' if db_name.empty?
-  db_password = ":#{db_password}" unless db_password.empty?
+  db_password = ":#{URI.escape(db_password)}" unless db_password.empty?
   db_server = 'localhost' if db_server.empty?
 
   db_server = "@#{db_server}" unless db_user.empty?
+  db_server = "#{db_server}:#{db_port}"
 
   env_path = File.expand_path('./.env')
   File.open(env_path, 'w') do |file|
     file.puts "DATABASE_NAME=#{db_name}"
+    file.puts "DATABASE_PORT=#{db_port}"
     file.puts "DATABASE_URL=\"postgres://#{db_user}#{db_password}#{db_server}/#{db_name}\""
   end
 
@@ -48,15 +53,15 @@ namespace :db do
   end
 
   task :psql => :load_db_settings do
-    exec "psql #{ENV['DATABASE_NAME']}"
+    exec "psql -p #{ENV['DATABASE_PORT']} #{ENV['DATABASE_NAME']}"
   end
 
   task :drop => :load_db_settings do
-    %x{ dropdb #{ENV['DATABASE_NAME']} }
+    %x{ dropdb -p #{ENV['DATABASE_PORT']} #{ENV['DATABASE_NAME']} }
   end
 
   task :create => :load_db_settings do
-    %x{ createdb #{ENV['DATABASE_NAME']} }
+    %x{ createdb -p #{ENV['DATABASE_PORT']} #{ENV['DATABASE_NAME']} }
   end
 
   task :migrate => :load_db_settings do
