@@ -15,7 +15,7 @@ task :setup do
   if File.exist?('.env')
     puts 'This will overwrite your existing .env file'
   end
-  print 'Enter your database name: [postgres_ext_serializers_test] '
+  print 'Enter your database name: [postgres_ext_test] '
   db_name = STDIN.gets.chomp
   print 'Enter your database user: [] '
   db_user = STDIN.gets.chomp
