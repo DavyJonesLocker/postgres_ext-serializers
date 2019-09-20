@@ -1,3 +1,4 @@
+require 'uri'
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 
@@ -26,7 +27,7 @@ task :setup do
   db_port = STDIN.gets.chomp
 
   db_name = 'postgres_ext_test' if db_name.empty?
-  db_password = ":#{db_password}" unless db_password.empty?
+  db_password = ":#{URI.escape(db_password)}" unless db_password.empty?
   db_server = 'localhost' if db_server.empty?
 
   db_server = "@#{db_server}" unless db_user.empty?
